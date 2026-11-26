@@ -137,7 +137,7 @@
               3D Relief
             </span>
           </div>
-          <p id="map-subtitle" class="text-[11px] text-slate-400 mt-1 leading-none">11 Tracks &bull; 13 Stands &amp; Gates &bull; Elev 502–938 ft</p>
+          <p id="map-subtitle" class="text-[11px] text-slate-400 mt-1 leading-none">11 Tracks &bull; 14 Stands &amp; Gates &bull; Elev 502–938 ft</p>
         </div>
       </div>
 
@@ -161,7 +161,7 @@
           </button>
         </div>
 
-        <!-- Mobile Panel Toggle -->
+        <!-- Panel Toggle -->
         <button
           id="btn-toggle-panel"
           onclick="toggleSidebar()"
@@ -176,17 +176,96 @@
     </header>
 
     <!-- ===================================================================== -->
+    <!-- ORIENTATION-SYNCED COMPASS WIDGET                                     -->
+    <!-- ===================================================================== -->
+    <button
+      id="compass-widget"
+      onclick="alignMapNorth()"
+      title="Compass Rose (Click to align North)"
+      class="fixed bottom-4 right-4 z-30 w-20 h-20 rounded-full bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-white/15 shadow-2xl flex flex-col items-center justify-center text-slate-200 transition group cursor-pointer"
+    >
+      <div id="compass-dial" class="relative w-16 h-16 flex items-center justify-center transition-transform duration-75" style="transform: rotate(0deg);">
+        <svg viewBox="0 0 100 100" class="w-full h-full overflow-visible">
+          <!-- Inner bezel ring -->
+          <circle cx="50" cy="50" r="37" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="0.9" stroke-dasharray="2 2" />
+
+          <!-- Degree tick marks every 15 deg (major every 45 deg) -->
+          <g stroke="rgba(203,213,225,0.45)" stroke-linecap="round">
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(15 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(30 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(45 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(60 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(75 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" transform="rotate(90 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(105 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(120 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(135 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(150 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(165 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" transform="rotate(180 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(195 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(210 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(225 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(240 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(255 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" transform="rotate(270 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(285 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(300 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(315 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(330 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(345 50 50)" />
+          </g>
+
+          <!-- Intercardinal star points (NE, SE, SW, NW) -->
+          <g fill="rgba(148,163,184,0.28)">
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(45 50 50)" />
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(135 50 50)" />
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(225 50 50)" />
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(315 50 50)" />
+          </g>
+
+          <!-- South / East / West pointer facets -->
+          <polygon points="50,82 54.5,50 50,45 45.5,50" fill="#64748b" />
+          <polygon points="82,50 50,45.5 45,50 50,54.5" fill="rgba(148,163,184,0.45)" />
+          <polygon points="18,50 50,45.5 55,50 50,54.5" fill="rgba(148,163,184,0.45)" />
+
+          <!-- North pointer facets (crimson/rose highlight) -->
+          <polygon points="50,15 50,50 44.5,50" fill="#f43f5e" />
+          <polygon points="50,15 55.5,50 50,50" fill="#fb7185" />
+
+          <!-- Center pivot cap -->
+          <circle cx="50" cy="50" r="5" fill="#0f172a" stroke="#e2e8f0" stroke-width="1.5" />
+          <circle cx="50" cy="50" r="1.8" fill="#f43f5e" />
+
+          <!-- Cardinal & Intercardinal Labels -->
+          <text x="50" y="13.5" text-anchor="middle" dominant-baseline="central" fill="#fb7185" font-size="9.5" font-weight="800">N</text>
+          <text x="50" y="90.5" text-anchor="middle" dominant-baseline="central" fill="#cbd5e1" font-size="8" font-weight="700">S</text>
+          <text x="90.5" y="50" text-anchor="middle" dominant-baseline="central" fill="#cbd5e1" font-size="8" font-weight="700">E</text>
+          <text x="9.5" y="50" text-anchor="middle" dominant-baseline="central" fill="#cbd5e1" font-size="8" font-weight="700">W</text>
+
+          <text x="77.5" y="22.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">NE</text>
+          <text x="77.5" y="77.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">SE</text>
+          <text x="22.5" y="77.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">SW</text>
+          <text x="22.5" y="22.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">NW</text>
+        </svg>
+      </div>
+    </button>
+
+    <!-- ===================================================================== -->
     <!-- LEFT CONTROL & LEGEND DRAWER                                          -->
     <!-- ===================================================================== -->
     <aside
       id="sidebar-panel"
       class="absolute top-16 left-3 sm:top-20 sm:left-4 z-20 w-[calc(100vw-1.5rem)] max-w-[310px] max-h-[calc(100vh-12rem)] overflow-y-auto custom-scroll bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl transition-all duration-200 space-y-4"
     >
-      <!-- Quick Feature Selector -->
+      <!-- Quick Feature Selector & GPX Loader -->
       <div>
-        <label for="feature-select" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Inspect Road or Stand
-        </label>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="feature-select" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Inspect Road or Stand
+          </label>
+        </div>
         <select
           id="feature-select"
           onchange="handleDropdownSelect(this.value)"
@@ -228,18 +307,32 @@
             <input type="checkbox" checked onchange="toggleLayer('secondary', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
           </label>
 
-          <!-- Waypoints: Stands, Gates & Shop -->
+          <!-- Waypoints: Stands, Gates, Bear Den & Shop -->
           <label class="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
             <div class="flex items-center gap-2.5">
               <span class="w-6 flex justify-center">
                 <span class="w-3 h-3 rounded-full bg-emerald-400 border-2 border-white inline-block"></span>
               </span>
               <div>
-                <div class="font-semibold text-white leading-tight">Stands, Gates &amp; Shop</div>
-                <div class="text-[10px] text-slate-400">13 Waypoints &amp; Labels</div>
+                <div class="font-semibold text-white leading-tight">Stands, Gates, Bear Den &amp; Shop</div>
+                <div id="wpt-layer-subtitle" class="text-[10px] text-slate-400">14 Waypoints &amp; Labels</div>
               </div>
             </div>
             <input type="checkbox" checked onchange="toggleLayer('waypoints', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
+          </label>
+
+          <!-- Road Labels Toggle -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 flex justify-center">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-white/20 text-[9px] font-bold text-slate-200 leading-none">TRL</span>
+              </span>
+              <div>
+                <div class="font-semibold text-white leading-tight">Road &amp; Trail Labels</div>
+                <div class="text-[10px] text-slate-400">Route Name Tags</div>
+              </div>
+            </div>
+            <input type="checkbox" checked onchange="toggleLayer('roadLabels', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
           </label>
         </div>
       </div>
@@ -280,7 +373,7 @@
               onclick="setSurfaceStyle('topo')"
               class="py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition"
             >
-              Hypsometric Topo
+              Topo Map
             </button>
           </div>
         </div>
@@ -357,20 +450,28 @@
     </section>
 
     <!-- ===================================================================== -->
-    <!-- EMBEDDED DEFAULT GPX DATA (Tony's Land Revised)                       -->
+    <!-- EMBEDDED DEFAULT GPX DATA (Tony's Land + Bear Den + Big Ridge SW)     -->
     <!-- ===================================================================== -->
     <script id="default-gpx-data" type="application/xml"><?xml version="1.0"?>
-<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" creator="CALTOPO" version="1.1"><metadata><name><![CDATA[Tony's Land]]></name></metadata><wpt lat="34.52582539891374" lon="-92.87393831099773"><name>Shop Road Gate</name></wpt><wpt lat="34.52421829389809" lon="-92.87752021016149"><name>Shop</name></wpt><wpt lat="34.516717" lon="-92.878965"><name>Hunting Stand</name></wpt><wpt lat="34.513232" lon="-92.878628"><name>Box Stand</name></wpt><wpt lat="34.507312" lon="-92.875408"><name>Ben's Old Stand</name></wpt><wpt lat="34.50845" lon="-92.874029"><name>Roger's Stand</name></wpt><wpt lat="34.510226" lon="-92.871803"><name>Ladder Stand</name></wpt><wpt lat="34.50114750845685" lon="-92.8631074639909"><name>171 Gate</name></wpt><wpt lat="34.524497" lon="-92.851752"><name>Dollhouse</name></wpt><wpt lat="34.520295" lon="-92.85793"><name>Kirk's Stand</name></wpt><wpt lat="34.508434" lon="-92.86328"><name>Tripod Stand Cutoff</name></wpt><wpt lat="34.509458" lon="-92.87939"><name>Rickety Ladder Stand</name></wpt><wpt lat="34.505799" lon="-92.867288"><name>Ben's Stand</name></wpt><trk><name>Shop Road</name><trkseg><trkpt lat="34.5258119236961" lon="-92.87396004529754"><ele>168.0</ele></trkpt><trkpt lat="34.52570309126779" lon="-92.87419607969085"><ele>169.0</ele></trkpt><trkpt lat="34.52556829445188" lon="-92.87459841104308"><ele>169.0</ele></trkpt><trkpt lat="34.52544786070723" lon="-92.87504097553054"><ele>170.0</ele></trkpt><trkpt lat="34.525304775939134" lon="-92.87551304431716"><ele>170.0</ele></trkpt><trkpt lat="34.52507136894782" lon="-92.8761051419572"><ele>171.0</ele></trkpt><trkpt lat="34.52489237384547" lon="-92.87668986352244"><ele>172.0</ele></trkpt><trkpt lat="34.524687248624595" lon="-92.87741986816002"><ele>172.0</ele></trkpt><trkpt lat="34.52447952491942" lon="-92.87748692338539"><ele>173.0</ele></trkpt><trkpt lat="34.52425412201492" lon="-92.87776319091392"><ele>173.0</ele></trkpt><trkpt lat="34.52397568229077" lon="-92.87789193694664"><ele>174.0</ele></trkpt><trkpt lat="34.523689506134566" lon="-92.87814942901207"><ele>175.0</ele></trkpt><trkpt lat="34.52344863209625" lon="-92.87832913701607"><ele>177.0</ele></trkpt><trkpt lat="34.52315693562075" lon="-92.87853834931923"><ele>180.0</ele></trkpt><trkpt lat="34.52287849222875" lon="-92.87866441314293"><ele>188.35</ele></trkpt><trkpt lat="34.5226420377377" lon="-92.87860272233559"><ele>193.89</ele></trkpt><trkpt lat="34.52230393229489" lon="-92.87837473456932"><ele>198.0</ele></trkpt><trkpt lat="34.522040955311596" lon="-92.87821648423744"><ele>201.0</ele></trkpt><trkpt lat="34.5217138946242" lon="-92.87811724250389"><ele>205.0</ele></trkpt><trkpt lat="34.52146196532615" lon="-92.87793485229088"><ele>211.0</ele></trkpt><trkpt lat="34.521170259091406" lon="-92.87773100440575"><ele>217.5</ele></trkpt></trkseg></trk><trk><name>Logging Road</name><trkseg><trkpt lat="34.520326202321506" lon="-92.88009620973334"><ele>218.0</ele></trkpt><trkpt lat="34.52048200291735" lon="-92.87979312011466"><ele>216.0</ele></trkpt><trkpt lat="34.52050299700007" lon="-92.87935994335875"><ele>215.0</ele></trkpt><trkpt lat="34.52055382506987" lon="-92.87877119847998"><ele>217.0</ele></trkpt><trkpt lat="34.52075050836127" lon="-92.87832058736548"><ele>217.0</ele></trkpt><trkpt lat="34.521072051686694" lon="-92.87784181305632"><ele>216.65</ele></trkpt><trkpt lat="34.52141679787664" lon="-92.87745691606268"><ele>217.0</ele></trkpt><trkpt lat="34.52179800492681" lon="-92.87689633437857"><ele>217.0</ele></trkpt><trkpt lat="34.52207976627533" lon="-92.87649668523535"><ele>214.0</ele></trkpt><trkpt lat="34.52226760647987" lon="-92.8759481734918"><ele>208.4</ele></trkpt><trkpt lat="34.522397989194005" lon="-92.8753165132688"><ele>204.0</ele></trkpt><trkpt lat="34.52255157555816" lon="-92.87470631071791"><ele>208.0</ele></trkpt><trkpt lat="34.522810130592816" lon="-92.87422753640875"><ele>209.0</ele></trkpt><trkpt lat="34.5231217213645" lon="-92.87365622588858"><ele>206.0</ele></trkpt><trkpt lat="34.52345098953531" lon="-92.87316404053435"><ele>199.0</ele></trkpt><trkpt lat="34.523895169705085" lon="-92.87273488709197"><ele>191.0</ele></trkpt><trkpt lat="34.52441006079251" lon="-92.87219173976645"><ele>181.72</ele></trkpt><trkpt lat="34.524860864010165" lon="-92.87175722190604"><ele>173.0</ele></trkpt><trkpt lat="34.525175205650996" lon="-92.87151220253348"><ele>167.0</ele></trkpt></trkseg></trk><trk><name>Crickey's Road</name><trkseg><trkpt lat="34.522849501974434" lon="-92.8741482506796"><ele>208.0</ele></trkpt><trkpt lat="34.5225810020143" lon="-92.8740047524973"><ele>201.68</ele></trkpt><trkpt lat="34.522320235792456" lon="-92.87381431565724"><ele>195.07</ele></trkpt><trkpt lat="34.52202411044896" lon="-92.8736614297434"><ele>190.0</ele></trkpt><trkpt lat="34.5217898678006" lon="-92.87325105176411"><ele>180.0</ele></trkpt><trkpt lat="34.52156224771072" lon="-92.8729238222643"><ele>173.09</ele></trkpt><trkpt lat="34.52126391635935" lon="-92.87275484309636"><ele>172.87</ele></trkpt></trkseg></trk><trk><name>Big Valley Road</name><trkseg><trkpt lat="34.51603469974215" lon="-92.87965557523307"><ele>193.1</ele></trkpt><trkpt lat="34.516349444165826" lon="-92.8792655467987"><ele>192.0</ele></trkpt><trkpt lat="34.516716403886676" lon="-92.87896497175097"><ele>190.0</ele></trkpt><trkpt lat="34.51707573607564" lon="-92.87854864262044"><ele>189.0</ele></trkpt><trkpt lat="34.51737857423723" lon="-92.87822376005352"><ele>187.45</ele></trkpt><trkpt lat="34.51767294667661" lon="-92.87760886363685"><ele>186.0</ele></trkpt><trkpt lat="34.518011240288615" lon="-92.87724039517343"><ele>184.25</ele></trkpt><trkpt lat="34.518438801169395" lon="-92.8770553227514"><ele>183.0</ele></trkpt><trkpt lat="34.51884842477739" lon="-92.8766890335828"><ele>182.0</ele></trkpt><trkpt lat="34.51908848248422" lon="-92.87621478550136"><ele>180.0</ele></trkpt><trkpt lat="34.51942157931626" lon="-92.87586358375847"><ele>180.0</ele></trkpt><trkpt lat="34.51976599171758" lon="-92.87528456188738"><ele>178.0</ele></trkpt><trkpt lat="34.520095735788345" lon="-92.87478013895452"><ele>177.0</ele></trkpt><trkpt lat="34.52037024311721" lon="-92.8743059746921"><ele>176.0</ele></trkpt><trkpt lat="34.52073569409549" lon="-92.87375536747277"><ele>175.0</ele></trkpt><trkpt lat="34.5210893265903" lon="-92.8731317538768"><ele>173.0</ele></trkpt><trkpt lat="34.52142393216491" lon="-92.87237780168653"><ele>172.0</ele></trkpt><trkpt lat="34.521811259910464" lon="-92.87200547754765"><ele>171.0</ele></trkpt><trkpt lat="34.5221702568233" lon="-92.87142360582948"><ele>170.0</ele></trkpt><trkpt lat="34.52258742414415" lon="-92.871382702142"><ele>169.0</ele></trkpt><trkpt lat="34.52296025119722" lon="-92.8711324185133"><ele>169.0</ele></trkpt><trkpt lat="34.523371467366815" lon="-92.8708456736058"><ele>168.81</ele></trkpt><trkpt lat="34.52386583201587" lon="-92.87078465335071"><ele>177.88</ele></trkpt><trkpt lat="34.52412122860551" lon="-92.87091700360179"><ele>178.93</ele></trkpt><trkpt lat="34.523913441225886" lon="-92.87114482372999"><ele>180.0</ele></trkpt><trkpt lat="34.5235448051244" lon="-92.87142754532397"><ele>184.66</ele></trkpt><trkpt lat="34.52315035276115" lon="-92.87192601710558"><ele>186.0</ele></trkpt><trkpt lat="34.522844245657325" lon="-92.87239900790155"><ele>189.0</ele></trkpt><trkpt lat="34.52258596928536" lon="-92.87276591972532"><ele>194.0</ele></trkpt></trkseg></trk><trk><name>Box Stand Cutoff</name><trkseg><trkpt lat="34.51639357584526" lon="-92.87922409482043"><ele>192.0</ele></trkpt><trkpt lat="34.5162782818079" lon="-92.8789394069463"><ele>196.13</ele></trkpt><trkpt lat="34.51596354134381" lon="-92.87887989543378"><ele>202.48</ele></trkpt><trkpt lat="34.51553572900593" lon="-92.87886807695031"><ele>212.67</ele></trkpt><trkpt lat="34.51515351422131" lon="-92.87872424349189"><ele>220.0</ele></trkpt><trkpt lat="34.51477515511215" lon="-92.87835468538105"><ele>222.0</ele></trkpt><trkpt lat="34.514441303908825" lon="-92.87802209146321"><ele>223.55</ele></trkpt><trkpt lat="34.51414383016527" lon="-92.87768128328025"><ele>234.0</ele></trkpt><trkpt lat="34.51394281003171" lon="-92.87736863711355"><ele>239.0</ele></trkpt></trkseg></trk><trk><name>Middle Ridge South</name><trkseg><trkpt lat="34.512839084907455" lon="-92.87942494215184"><ele>227.54</ele></trkpt><trkpt lat="34.51304077170789" lon="-92.8789396584034"><ele>227.0</ele></trkpt><trkpt lat="34.51325945556164" lon="-92.8785783983767"><ele>231.0</ele></trkpt><trkpt lat="34.513520719483495" lon="-92.87811756134033"><ele>232.0</ele></trkpt><trkpt lat="34.51381903141737" lon="-92.8775701392442"><ele>237.0</ele></trkpt><trkpt lat="34.51414341107011" lon="-92.87711039185524"><ele>240.0</ele></trkpt><trkpt lat="34.514202335849404" lon="-92.8767720144242"><ele>237.0</ele></trkpt><trkpt lat="34.51404978521168" lon="-92.87634135223925"><ele>229.2</ele></trkpt><trkpt lat="34.51385666616261" lon="-92.87585847079754"><ele>221.0</ele></trkpt><trkpt lat="34.51355525292456" lon="-92.87555890157819"><ele>213.49</ele></trkpt><trkpt lat="34.51332678846562" lon="-92.87549834093133"><ele>212.0</ele></trkpt></trkseg></trk><trk><name>Turkey Road</name><trkseg><trkpt lat="34.511117491095284" lon="-92.87992377765477"><ele>194.0</ele></trkpt><trkpt lat="34.51138869859278" lon="-92.87961155176163"><ele>195.68</ele></trkpt><trkpt lat="34.51165775768459" lon="-92.87911861203611"><ele>198.0</ele></trkpt><trkpt lat="34.511882308870554" lon="-92.87861184217036"><ele>198.0</ele></trkpt><trkpt lat="34.51206595636904" lon="-92.87807657383382"><ele>201.08</ele></trkpt><trkpt lat="34.512235186994076" lon="-92.87761674262583"><ele>205.0</ele></trkpt><trkpt lat="34.5123356860131" lon="-92.87693604826927"><ele>208.0</ele></trkpt><trkpt lat="34.51263844035566" lon="-92.87647856399417"><ele>207.0</ele></trkpt><trkpt lat="34.5129541028291" lon="-92.87616164423525"><ele>208.0</ele></trkpt><trkpt lat="34.51324185356498" lon="-92.87565629929304"><ele>211.12</ele></trkpt><trkpt lat="34.51348526403308" lon="-92.87517023272812"><ele>210.0</ele></trkpt><trkpt lat="34.51379623264074" lon="-92.87486504763365"><ele>205.93</ele></trkpt><trkpt lat="34.514042157679796" lon="-92.87416247650981"><ele>208.0</ele></trkpt><trkpt lat="34.51436008326709" lon="-92.87360918708146"><ele>211.0</ele></trkpt><trkpt lat="34.51465110294521" lon="-92.87308825179935"><ele>208.0</ele></trkpt><trkpt lat="34.51499794609845" lon="-92.87251182831824"><ele>209.0</ele></trkpt><trkpt lat="34.51540522277355" lon="-92.87226070649922"><ele>205.0</ele></trkpt><trkpt lat="34.51591878198087" lon="-92.87209063768387"><ele>201.0</ele></trkpt><trkpt lat="34.51634355745653" lon="-92.87183388524716"><ele>198.0</ele></trkpt><trkpt lat="34.51665152795613" lon="-92.87173742428422"><ele>195.0</ele></trkpt><trkpt lat="34.51702737249434" lon="-92.87124683149159"><ele>193.0</ele></trkpt><trkpt lat="34.51712016016245" lon="-92.87061123177409"><ele>200.0</ele></trkpt><trkpt lat="34.51671657152474" lon="-92.8703001793474"><ele>203.0</ele></trkpt><trkpt lat="34.516718750819564" lon="-92.86962057463825"><ele>201.0</ele></trkpt><trkpt lat="34.51704732142389" lon="-92.86903291940689"><ele>201.0</ele></trkpt><trkpt lat="34.51746574603021" lon="-92.86854526028037"><ele>198.0</ele></trkpt><trkpt lat="34.51791669242084" lon="-92.86807520315051"><ele>194.51</ele></trkpt><trkpt lat="34.518434861674905" lon="-92.86809087730944"><ele>188.0</ele></trkpt><trkpt lat="34.51887340284884" lon="-92.86787814460695"><ele>187.0</ele></trkpt><trkpt lat="34.518700232729316" lon="-92.86736475303769"><ele>194.62</ele></trkpt><trkpt lat="34.51862651056008" lon="-92.86718926490875"><ele>197.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Southwest</name><trkseg><trkpt lat="34.50703631390827" lon="-92.87610365030352"><ele>277.13</ele></trkpt><trkpt lat="34.506767420098186" lon="-92.87637395784259"><ele>274.0</ele></trkpt><trkpt lat="34.506422001868486" lon="-92.87667905911803"><ele>269.95</ele></trkpt><trkpt lat="34.50606401078403" lon="-92.87713553756475"><ele>270.0</ele></trkpt><trkpt lat="34.50584465637803" lon="-92.87767357192934"><ele>274.0</ele></trkpt><trkpt lat="34.50570878572762" lon="-92.87830959074199"><ele>277.0</ele></trkpt><trkpt lat="34.50581146404147" lon="-92.87891786545515"><ele>275.0</ele></trkpt><trkpt lat="34.50564198195934" lon="-92.87936705164611"><ele>269.0</ele></trkpt><trkpt lat="34.50549085624516" lon="-92.87956193089485"><ele>265.0</ele></trkpt><trkpt lat="34.505752455443144" lon="-92.87801790051162"><ele>276.86</ele></trkpt><trkpt lat="34.50615528970957" lon="-92.87699799053371"><ele>269.0</ele></trkpt><trkpt lat="34.50665904209018" lon="-92.87645073607564"><ele>273.0</ele></trkpt><trkpt lat="34.507001945748925" lon="-92.87607237696648"><ele>278.0</ele></trkpt><trkpt lat="34.50725415721536" lon="-92.87553518079221"><ele>277.0</ele></trkpt><trkpt lat="34.507578453049064" lon="-92.87506210617721"><ele>273.0</ele></trkpt><trkpt lat="34.50804247520864" lon="-92.87459347397089"><ele>270.61</ele></trkpt><trkpt lat="34.508451763540506" lon="-92.87402962334454"><ele>270.0</ele></trkpt><trkpt lat="34.50881922617555" lon="-92.87337684072554"><ele>270.43</ele></trkpt><trkpt lat="34.5092567615211" lon="-92.87275616079569"><ele>275.36</ele></trkpt><trkpt lat="34.50972765684128" lon="-92.87229666486382"><ele>279.0</ele></trkpt><trkpt lat="34.510224871337414" lon="-92.87183071486652"><ele>282.0</ele></trkpt><trkpt lat="34.51065964065492" lon="-92.87116938270628"><ele>283.0</ele></trkpt><trkpt lat="34.51100707054138" lon="-92.87056387402117"><ele>286.0</ele></trkpt><trkpt lat="34.51139733195305" lon="-92.86986717022955"><ele>285.0</ele></trkpt><trkpt lat="34.51180594973266" lon="-92.86926342174411"><ele>283.0</ele></trkpt><trkpt lat="34.51223501935601" lon="-92.86909896880388"><ele>279.0</ele></trkpt><trkpt lat="34.51278733355692" lon="-92.86897604054364"><ele>274.54</ele></trkpt></trkseg></trk><trk><name>Broken Leg Trail</name><trkseg><trkpt lat="34.51111199485497" lon="-92.87992308935594"><ele>194.0</ele></trkpt><trkpt lat="34.51073055155575" lon="-92.87958640605211"><ele>198.05</ele></trkpt><trkpt lat="34.51023526489735" lon="-92.8794214501977"><ele>198.4</ele></trkpt><trkpt lat="34.50968767516315" lon="-92.87948473356664"><ele>204.43</ele></trkpt><trkpt lat="34.50927780009806" lon="-92.87932732142508"><ele>210.0</ele></trkpt><trkpt lat="34.50892483815551" lon="-92.87874528206885"><ele>217.0</ele></trkpt><trkpt lat="34.50869877822697" lon="-92.87805955857038"><ele>234.0</ele></trkpt><trkpt lat="34.508517226204276" lon="-92.87758665159345"><ele>243.0</ele></trkpt><trkpt lat="34.50802210718393" lon="-92.87703671492636"><ele>255.0</ele></trkpt><trkpt lat="34.507593708112836" lon="-92.87661594338715"><ele>265.0</ele></trkpt><trkpt lat="34.507196908816695" lon="-92.87624328397214"><ele>274.25</ele></trkpt><trkpt lat="34.50703631390827" lon="-92.87610365030352"><ele>277.13</ele></trkpt></trkseg></trk><trk><name>171 Main Road</name><trkseg><trkpt lat="34.511096178926884" lon="-92.87027219020474"><ele>286.0</ele></trkpt><trkpt lat="34.51083985157311" lon="-92.86980539560318"><ele>273.74</ele></trkpt><trkpt lat="34.51142222620547" lon="-92.86877106875181"><ele>266.97</ele></trkpt><trkpt lat="34.51182237826288" lon="-92.86776096560061"><ele>249.89</ele></trkpt><trkpt lat="34.511898485943675" lon="-92.86703366786242"><ele>232.98</ele></trkpt><trkpt lat="34.51161140576005" lon="-92.86640527658165"><ele>217.0</ele></trkpt><trkpt lat="34.51110044494271" lon="-92.86587780341506"><ele>204.0</ele></trkpt><trkpt lat="34.51086139306426" lon="-92.86526198498905"><ele>198.0</ele></trkpt><trkpt lat="34.510095957666636" lon="-92.86475370638072"><ele>192.0</ele></trkpt><trkpt lat="34.50938366353512" lon="-92.8641574177891"><ele>190.0</ele></trkpt><trkpt lat="34.50881729833782" lon="-92.86369213834405"><ele>179.5</ele></trkpt><trkpt lat="34.50843499973416" lon="-92.86328452639282"><ele>174.0</ele></trkpt><trkpt lat="34.50778699479997" lon="-92.86344587802887"><ele>172.0</ele></trkpt><trkpt lat="34.50681938789785" lon="-92.86387318745255"><ele>165.0</ele></trkpt><trkpt lat="34.506182530894876" lon="-92.8633893840015"><ele>160.0</ele></trkpt><trkpt lat="34.505173014476895" lon="-92.86331746727228"><ele>156.25</ele></trkpt><trkpt lat="34.50400575064123" lon="-92.8631798364222"><ele>153.0</ele></trkpt><trkpt lat="34.502555849030614" lon="-92.86316516809165"><ele>157.08</ele></trkpt><trkpt lat="34.50116871065719" lon="-92.86312315497975"><ele>168.0</ele></trkpt></trkseg></trk><trk><name>Southwest Trail</name><trkseg><trkpt lat="34.50517194566778" lon="-92.87375687800974"><ele>194.0</ele></trkpt><trkpt lat="34.505260940641165" lon="-92.87321330979466"><ele>188.0</ele></trkpt><trkpt lat="34.505500411614776" lon="-92.87280041724443"><ele>184.0</ele></trkpt><trkpt lat="34.50574357062578" lon="-92.87229959852993"><ele>186.52</ele></trkpt><trkpt lat="34.50604699552059" lon="-92.87179316394031"><ele>184.24</ele></trkpt><trkpt lat="34.50638419948518" lon="-92.87147012539208"><ele>186.75</ele></trkpt><trkpt lat="34.506727354601026" lon="-92.87105580791831"><ele>192.0</ele></trkpt><trkpt lat="34.50669684447348" lon="-92.87060134112835"><ele>187.0</ele></trkpt><trkpt lat="34.506593914702535" lon="-92.87021485157311"><ele>180.0</ele></trkpt><trkpt lat="34.50673188082874" lon="-92.86975158378482"><ele>182.64</ele></trkpt><trkpt lat="34.50683581910977" lon="-92.86926652147615"><ele>185.3</ele></trkpt></trkseg></trk><trk><name>171 Inner Loop</name><trkseg><trkpt lat="34.51106012062115" lon="-92.86588117355113"><ele>204.0</ele></trkpt><trkpt lat="34.510730635374784" lon="-92.8662835713476"><ele>201.56</ele></trkpt><trkpt lat="34.51028999872506" lon="-92.8668822068721"><ele>201.0</ele></trkpt><trkpt lat="34.50975313782692" lon="-92.8674387652427"><ele>197.0</ele></trkpt><trkpt lat="34.50922650285065" lon="-92.86813169717789"><ele>200.0</ele></trkpt><trkpt lat="34.508764911442995" lon="-92.86827427335083"><ele>196.0</ele></trkpt><trkpt lat="34.508330058306456" lon="-92.8679361473769"><ele>191.0</ele></trkpt><trkpt lat="34.507694374769926" lon="-92.86760807968676"><ele>188.0</ele></trkpt><trkpt lat="34.507039077579975" lon="-92.86742443218827"><ele>181.78</ele></trkpt><trkpt lat="34.50642912648618" lon="-92.86758368834853"><ele>172.71</ele></trkpt><trkpt lat="34.505892684683204" lon="-92.8673468157649"><ele>169.0</ele></trkpt><trkpt lat="34.505446096882224" lon="-92.86677852272987"><ele>167.0</ele></trkpt><trkpt lat="34.50520981103182" lon="-92.86607620306313"><ele>160.0</ele></trkpt><trkpt lat="34.505350794643164" lon="-92.8655494004488"><ele>163.31</ele></trkpt><trkpt lat="34.50506949797273" lon="-92.86501362919807"><ele>163.4</ele></trkpt><trkpt lat="34.5048120059073" lon="-92.86431198008358"><ele>159.0</ele></trkpt><trkpt lat="34.504912504926324" lon="-92.86358593963087"><ele>155.0</ele></trkpt><trkpt lat="34.50482381625789" lon="-92.86321227793509"><ele>154.0</ele></trkpt></trkseg></trk><trk><name>171 Outer Loop</name><trkseg><trkpt lat="34.50911267739744" lon="-92.86831183550285"><ele>200.0</ele></trkpt><trkpt lat="34.50893187895417" lon="-92.8689444065094"><ele>197.0</ele></trkpt><trkpt lat="34.50853449292481" lon="-92.86948839202523"><ele>196.0</ele></trkpt><trkpt lat="34.508094945922494" lon="-92.86982769146562"><ele>199.0</ele></trkpt><trkpt lat="34.50753243640065" lon="-92.8696561139077"><ele>192.12</ele></trkpt><trkpt lat="34.506926257163286" lon="-92.86928177811205"><ele>186.83</ele></trkpt><trkpt lat="34.50644086115062" lon="-92.86913509480655"><ele>182.0</ele></trkpt><trkpt lat="34.50603945180774" lon="-92.86869605071843"><ele>174.57</ele></trkpt><trkpt lat="34.50597499497235" lon="-92.86830369383097"><ele>168.0</ele></trkpt><trkpt lat="34.50586024671793" lon="-92.86773079074919"><ele>166.0</ele></trkpt><trkpt lat="34.505919685408244" lon="-92.86737357966314"><ele>169.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Cutoff</name><trkseg><trkpt lat="34.51181384210675" lon="-92.8678691284867"><ele>252.98</ele></trkpt><trkpt lat="34.5119350310415" lon="-92.86819757893682"><ele>260.2</ele></trkpt><trkpt lat="34.51211021281779" lon="-92.86860158666968"><ele>271.02</ele></trkpt><trkpt lat="34.51210229027073" lon="-92.86903120055628"><ele>280.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Northeast</name><trkseg><trkpt lat="34.51278935144348" lon="-92.86897613441988"><ele>274.48</ele></trkpt><trkpt lat="34.51332340948284" lon="-92.86877970211208"><ele>272.0</ele></trkpt><trkpt lat="34.513852559030056" lon="-92.86824275739491"><ele>261.26</ele></trkpt><trkpt lat="34.5142369531095" lon="-92.8676282800734"><ele>258.0</ele></trkpt><trkpt lat="34.51460089534521" lon="-92.86670501343906"><ele>267.0</ele></trkpt><trkpt lat="34.514972968026996" lon="-92.86556733772159"><ele>276.0</ele></trkpt><trkpt lat="34.5155821647495" lon="-92.86478321067989"><ele>278.0</ele></trkpt><trkpt lat="34.51604115776718" lon="-92.86397444084287"><ele>269.0</ele></trkpt><trkpt lat="34.51670944690704" lon="-92.86358384415507"><ele>260.0</ele></trkpt><trkpt lat="34.51708738692105" lon="-92.86322920583189"><ele>258.0</ele></trkpt><trkpt lat="34.51757789589465" lon="-92.86237668246031"><ele>263.0</ele></trkpt><trkpt lat="34.51814979314804" lon="-92.86080138757825"><ele>260.0</ele></trkpt><trkpt lat="34.5188788510859" lon="-92.85979304462671"><ele>259.0</ele></trkpt><trkpt lat="34.51978728175163" lon="-92.85890841856599"><ele>253.0</ele></trkpt><trkpt lat="34.52027393504977" lon="-92.85793997347355"><ele>255.0</ele></trkpt><trkpt lat="34.52076888643205" lon="-92.85721351392567"><ele>249.0</ele></trkpt><trkpt lat="34.52156885527074" lon="-92.85652209073305"><ele>247.0</ele></trkpt><trkpt lat="34.5222876034677" lon="-92.85555498674512"><ele>243.0</ele></trkpt><trkpt lat="34.5223515573889" lon="-92.85456189885736"><ele>247.0</ele></trkpt><trkpt lat="34.52179944142699" lon="-92.85420399159193"><ele>251.0</ele></trkpt><trkpt lat="34.52175920829177" lon="-92.85333235748112"><ele>249.0</ele></trkpt><trkpt lat="34.52208073809743" lon="-92.85226668231189"><ele>244.0</ele></trkpt><trkpt lat="34.522646348923445" lon="-92.85162203013897"><ele>239.0</ele></trkpt><trkpt lat="34.52317683957517" lon="-92.85062843933702"><ele>235.0</ele></trkpt><trkpt lat="34.52365418896079" lon="-92.84963241778314"><ele>232.0</ele></trkpt><trkpt lat="34.52391000947514" lon="-92.84889617787552"><ele>232.0</ele></trkpt></trkseg></trk><trk><name>Dollhouse Road</name><trkseg><trkpt lat="34.52509734073826" lon="-92.85133110635834"><ele>220.87</ele></trkpt><trkpt lat="34.52483067288995" lon="-92.85151239484549"><ele>227.57</ele></trkpt><trkpt lat="34.52449657022953" lon="-92.85171079449356"><ele>233.0</ele></trkpt><trkpt lat="34.5241854339838" lon="-92.8521538618952"><ele>237.43</ele></trkpt><trkpt lat="34.52374119311571" lon="-92.85234488546848"><ele>238.18</ele></trkpt><trkpt lat="34.52348361723125" lon="-92.85293262451887"><ele>241.1</ele></trkpt><trkpt lat="34.52320609241724" lon="-92.85347778350115"><ele>245.0</ele></trkpt><trkpt lat="34.52291574329138" lon="-92.85389947704971"><ele>244.0</ele></trkpt><trkpt lat="34.52267166227102" lon="-92.85431312397122"><ele>245.0</ele></trkpt><trkpt lat="34.5223857924866" lon="-92.85461808886738"><ele>248.0</ele></trkpt></trkseg></trk><trk><name>Turkey Road Extension</name><trkseg><trkpt lat="34.517044592579886" lon="-92.86326991092444"><ele>258.0</ele></trkpt><trkpt lat="34.51695076189935" lon="-92.8635685890913"><ele>257.83</ele></trkpt><trkpt lat="34.517097026109695" lon="-92.86385022103786"><ele>252.0</ele></trkpt><trkpt lat="34.517223509028554" lon="-92.86393814720213"><ele>249.07</ele></trkpt><trkpt lat="34.51723599806428" lon="-92.86418063566089"><ele>246.0</ele></trkpt><trkpt lat="34.51721747405827" lon="-92.86448598839343"><ele>243.9</ele></trkpt><trkpt lat="34.51712544076145" lon="-92.86478564143181"><ele>242.62</ele></trkpt><trkpt lat="34.517216300591826" lon="-92.86507515236735"><ele>239.62</ele></trkpt><trkpt lat="34.51748225837946" lon="-92.86546105518937"><ele>234.86</ele></trkpt><trkpt lat="34.51778995804489" lon="-92.86588777787983"><ele>226.0</ele></trkpt><trkpt lat="34.51809447258711" lon="-92.86615868099034"><ele>215.99</ele></trkpt><trkpt lat="34.51833453029394" lon="-92.86661272868514"><ele>205.25</ele></trkpt><trkpt lat="34.51862651056008" lon="-92.86718926490875"><ele>197.0</ele></trkpt></trkseg></trk><trk><name>Middle Ridge North</name><trkseg><trkpt lat="34.51617475149845" lon="-92.87411676563126"><ele>229.0</ele></trkpt><trkpt lat="34.5164386687876" lon="-92.87377623841166"><ele>226.0</ele></trkpt><trkpt lat="34.516687501231694" lon="-92.8732823766768"><ele>223.09</ele></trkpt><trkpt lat="34.51698152348399" lon="-92.87296981550753"><ele>225.0</ele></trkpt><trkpt lat="34.51777118258178" lon="-92.87195024080575"><ele>220.0</ele></trkpt><trkpt lat="34.51826244590763" lon="-92.87187142983032"><ele>222.0</ele></trkpt></trkseg></trk><trk><name>Tony's Road</name><trkseg><trkpt lat="34.51939358662317" lon="-92.87588472441541"><ele>180.0</ele></trkpt><trkpt lat="34.51908244751394" lon="-92.87581061013043"><ele>184.0</ele></trkpt><trkpt lat="34.518763264641166" lon="-92.87571321241558"><ele>192.0</ele></trkpt><trkpt lat="34.518365543335676" lon="-92.87562084384263"><ele>199.0</ele></trkpt><trkpt lat="34.51791585423052" lon="-92.87535010837018"><ele>207.5</ele></trkpt><trkpt lat="34.51746080070734" lon="-92.8752074483782"><ele>217.82</ele></trkpt><trkpt lat="34.516969537362456" lon="-92.87513880059123"><ele>226.0</ele></trkpt><trkpt lat="34.51649369671941" lon="-92.87480779923499"><ele>227.0</ele></trkpt><trkpt lat="34.51624006032944" lon="-92.87445056252182"><ele>230.0</ele></trkpt><trkpt lat="34.51617475149845" lon="-92.87411676563126"><ele>229.0</ele></trkpt><trkpt lat="34.51590637676418" lon="-92.87393306382"><ele>223.0</ele></trkpt><trkpt lat="34.51552676036954" lon="-92.87360558286309"><ele>214.0</ele></trkpt><trkpt lat="34.515028204768896" lon="-92.87347180768847"><ele>208.0</ele></trkpt><trkpt lat="34.514468935129315" lon="-92.87346661728625"><ele>211.0</ele></trkpt></trkseg></trk><trk><name>Bear Den Road</name><trkseg><trkpt lat="34.516351510202384" lon="-92.87177965431316"><ele>198.0</ele></trkpt><trkpt lat="34.51611869037151" lon="-92.87136820144951"><ele>200.7</ele></trkpt><trkpt lat="34.515679562464356" lon="-92.87136451341212"><ele>206.42</ele></trkpt><trkpt lat="34.51525895856321" lon="-92.87120676599443"><ele>214.0</ele></trkpt><trkpt lat="34.5148656796664" lon="-92.87094919010997"><ele>226.82</ele></trkpt><trkpt lat="34.51446351595223" lon="-92.87047812715173"><ele>244.67</ele></trkpt><trkpt lat="34.51406520791352" lon="-92.86997026763856"><ele>257.0</ele></trkpt><trkpt lat="34.51368810608983" lon="-92.86962174810469"><ele>267.0</ele></trkpt><trkpt lat="34.513187538832426" lon="-92.86964907310903"><ele>268.16</ele></trkpt><trkpt lat="34.51289165765047" lon="-92.86917524412274"><ele>274.0</ele></trkpt><trkpt lat="34.51278358967955" lon="-92.86897941915579"><ele>274.75</ele></trkpt></trkseg></trk></gpx></script>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" creator="CALTOPO" version="1.1"><metadata><name><![CDATA[Tony's Land]]></name></metadata><wpt lat="34.52582539891374" lon="-92.87393831099773"><name>Shop Road Gate</name></wpt><wpt lat="34.52421829389809" lon="-92.87752021016149"><name>Shop</name></wpt><wpt lat="34.516717" lon="-92.878965"><name>Hunting Stand</name></wpt><wpt lat="34.513232" lon="-92.878628"><name>Box Stand</name></wpt><wpt lat="34.507312" lon="-92.875408"><name>Ben's Old Stand</name></wpt><wpt lat="34.50845" lon="-92.874029"><name>Roger's Stand</name></wpt><wpt lat="34.510226" lon="-92.871803"><name>Ladder Stand</name></wpt><wpt lat="34.50114750845685" lon="-92.8631074639909"><name>171 Gate</name></wpt><wpt lat="34.524497" lon="-92.851752"><name>Dollhouse</name></wpt><wpt lat="34.520295" lon="-92.85793"><name>Kirk's Stand</name></wpt><wpt lat="34.508434" lon="-92.86328"><name>Tripod Stand Cutoff</name></wpt><wpt lat="34.509458" lon="-92.87939"><name>Rickety Ladder Stand</name></wpt><wpt lat="34.505799" lon="-92.867288"><name>Ben's Stand</name></wpt><wpt lat="34.51512110844316" lon="-92.87110690798764"><name>Bear Den</name></wpt><trk><name>Shop Road</name><trkseg><trkpt lat="34.5258119236961" lon="-92.87396004529754"><ele>168.0</ele></trkpt><trkpt lat="34.52570309126779" lon="-92.87419607969085"><ele>169.0</ele></trkpt><trkpt lat="34.52556829445188" lon="-92.87459841104308"><ele>169.0</ele></trkpt><trkpt lat="34.52544786070723" lon="-92.87504097553054"><ele>170.0</ele></trkpt><trkpt lat="34.525304775939134" lon="-92.87551304431716"><ele>170.0</ele></trkpt><trkpt lat="34.52507136894782" lon="-92.8761051419572"><ele>171.0</ele></trkpt><trkpt lat="34.52489237384547" lon="-92.87668986352244"><ele>172.0</ele></trkpt><trkpt lat="34.524687248624595" lon="-92.87741986816002"><ele>172.0</ele></trkpt><trkpt lat="34.52447952491942" lon="-92.87748692338539"><ele>173.0</ele></trkpt><trkpt lat="34.52425412201492" lon="-92.87776319091392"><ele>173.0</ele></trkpt><trkpt lat="34.52397568229077" lon="-92.87789193694664"><ele>174.0</ele></trkpt><trkpt lat="34.523689506134566" lon="-92.87814942901207"><ele>175.0</ele></trkpt><trkpt lat="34.52344863209625" lon="-92.87832913701607"><ele>177.0</ele></trkpt><trkpt lat="34.52315693562075" lon="-92.87853834931923"><ele>180.0</ele></trkpt><trkpt lat="34.52287849222875" lon="-92.87866441314293"><ele>188.35</ele></trkpt><trkpt lat="34.5226420377377" lon="-92.87860272233559"><ele>193.89</ele></trkpt><trkpt lat="34.52230393229489" lon="-92.87837473456932"><ele>198.0</ele></trkpt><trkpt lat="34.522040955311596" lon="-92.87821648423744"><ele>201.0</ele></trkpt><trkpt lat="34.5217138946242" lon="-92.87811724250389"><ele>205.0</ele></trkpt><trkpt lat="34.52146196532615" lon="-92.87793485229088"><ele>211.0</ele></trkpt><trkpt lat="34.521170259091406" lon="-92.87773100440575"><ele>217.5</ele></trkpt></trkseg></trk><trk><name>Logging Road</name><trkseg><trkpt lat="34.520326202321506" lon="-92.88009620973334"><ele>218.0</ele></trkpt><trkpt lat="34.52048200291735" lon="-92.87979312011466"><ele>216.0</ele></trkpt><trkpt lat="34.52050299700007" lon="-92.87935994335875"><ele>215.0</ele></trkpt><trkpt lat="34.52055382506987" lon="-92.87877119847998"><ele>217.0</ele></trkpt><trkpt lat="34.52075050836127" lon="-92.87832058736548"><ele>217.0</ele></trkpt><trkpt lat="34.521072051686694" lon="-92.87784181305632"><ele>216.65</ele></trkpt><trkpt lat="34.52141679787664" lon="-92.87745691606268"><ele>217.0</ele></trkpt><trkpt lat="34.52179800492681" lon="-92.87689633437857"><ele>217.0</ele></trkpt><trkpt lat="34.52207976627533" lon="-92.87649668523535"><ele>214.0</ele></trkpt><trkpt lat="34.52226760647987" lon="-92.8759481734918"><ele>208.4</ele></trkpt><trkpt lat="34.522397989194005" lon="-92.8753165132688"><ele>204.0</ele></trkpt><trkpt lat="34.52255157555816" lon="-92.87470631071791"><ele>208.0</ele></trkpt><trkpt lat="34.522810130592816" lon="-92.87422753640875"><ele>209.0</ele></trkpt><trkpt lat="34.5231217213645" lon="-92.87365622588858"><ele>206.0</ele></trkpt><trkpt lat="34.52345098953531" lon="-92.87316404053435"><ele>199.0</ele></trkpt><trkpt lat="34.523895169705085" lon="-92.87273488709197"><ele>191.0</ele></trkpt><trkpt lat="34.52441006079251" lon="-92.87219173976645"><ele>181.72</ele></trkpt><trkpt lat="34.524860864010165" lon="-92.87175722190604"><ele>173.0</ele></trkpt><trkpt lat="34.525175205650996" lon="-92.87151220253348"><ele>167.0</ele></trkpt></trkseg></trk><trk><name>Crickey's Road</name><trkseg><trkpt lat="34.522849501974434" lon="-92.8741482506796"><ele>208.0</ele></trkpt><trkpt lat="34.5225810020143" lon="-92.8740047524973"><ele>201.68</ele></trkpt><trkpt lat="34.522320235792456" lon="-92.87381431565724"><ele>195.07</ele></trkpt><trkpt lat="34.52202411044896" lon="-92.8736614297434"><ele>190.0</ele></trkpt><trkpt lat="34.5217898678006" lon="-92.87325105176411"><ele>180.0</ele></trkpt><trkpt lat="34.52156224771072" lon="-92.8729238222643"><ele>173.09</ele></trkpt><trkpt lat="34.52126391635935" lon="-92.87275484309636"><ele>172.87</ele></trkpt></trkseg></trk><trk><name>Big Valley Road</name><trkseg><trkpt lat="34.51603469974215" lon="-92.87965557523307"><ele>193.1</ele></trkpt><trkpt lat="34.516349444165826" lon="-92.8792655467987"><ele>192.0</ele></trkpt><trkpt lat="34.516716403886676" lon="-92.87896497175097"><ele>190.0</ele></trkpt><trkpt lat="34.51707573607564" lon="-92.87854864262044"><ele>189.0</ele></trkpt><trkpt lat="34.51737857423723" lon="-92.87822376005352"><ele>187.45</ele></trkpt><trkpt lat="34.51767294667661" lon="-92.87760886363685"><ele>186.0</ele></trkpt><trkpt lat="34.518011240288615" lon="-92.87724039517343"><ele>184.25</ele></trkpt><trkpt lat="34.518438801169395" lon="-92.8770553227514"><ele>183.0</ele></trkpt><trkpt lat="34.51884842477739" lon="-92.8766890335828"><ele>182.0</ele></trkpt><trkpt lat="34.51908848248422" lon="-92.87621478550136"><ele>180.0</ele></trkpt><trkpt lat="34.51942157931626" lon="-92.87586358375847"><ele>180.0</ele></trkpt><trkpt lat="34.51976599171758" lon="-92.87528456188738"><ele>178.0</ele></trkpt><trkpt lat="34.520095735788345" lon="-92.87478013895452"><ele>177.0</ele></trkpt><trkpt lat="34.52037024311721" lon="-92.8743059746921"><ele>176.0</ele></trkpt><trkpt lat="34.52073569409549" lon="-92.87375536747277"><ele>175.0</ele></trkpt><trkpt lat="34.5210893265903" lon="-92.8731317538768"><ele>173.0</ele></trkpt><trkpt lat="34.52142393216491" lon="-92.87237780168653"><ele>172.0</ele></trkpt><trkpt lat="34.521811259910464" lon="-92.87200547754765"><ele>171.0</ele></trkpt><trkpt lat="34.5221702568233" lon="-92.87142360582948"><ele>170.0</ele></trkpt><trkpt lat="34.52258742414415" lon="-92.871382702142"><ele>169.0</ele></trkpt><trkpt lat="34.52296025119722" lon="-92.8711324185133"><ele>169.0</ele></trkpt><trkpt lat="34.523371467366815" lon="-92.8708456736058"><ele>168.81</ele></trkpt><trkpt lat="34.52386583201587" lon="-92.87078465335071"><ele>177.88</ele></trkpt><trkpt lat="34.52412122860551" lon="-92.87091700360179"><ele>178.93</ele></trkpt><trkpt lat="34.523913441225886" lon="-92.87114482372999"><ele>180.0</ele></trkpt><trkpt lat="34.5235448051244" lon="-92.87142754532397"><ele>184.66</ele></trkpt><trkpt lat="34.52315035276115" lon="-92.87192601710558"><ele>186.0</ele></trkpt><trkpt lat="34.522844245657325" lon="-92.87239900790155"><ele>189.0</ele></trkpt><trkpt lat="34.52258596928536" lon="-92.87276591972532"><ele>194.0</ele></trkpt></trkseg></trk><trk><name>Box Stand Cutoff</name><trkseg><trkpt lat="34.51639357584526" lon="-92.87922409482043"><ele>192.0</ele></trkpt><trkpt lat="34.5162782818079" lon="-92.8789394069463"><ele>196.13</ele></trkpt><trkpt lat="34.51596354134381" lon="-92.87887989543378"><ele>202.48</ele></trkpt><trkpt lat="34.51553572900593" lon="-92.87886807695031"><ele>212.67</ele></trkpt><trkpt lat="34.51515351422131" lon="-92.87872424349189"><ele>220.0</ele></trkpt><trkpt lat="34.51477515511215" lon="-92.87835468538105"><ele>222.0</ele></trkpt><trkpt lat="34.514441303908825" lon="-92.87802209146321"><ele>223.55</ele></trkpt><trkpt lat="34.51414383016527" lon="-92.87768128328025"><ele>234.0</ele></trkpt><trkpt lat="34.51394281003171" lon="-92.87736863711355"><ele>239.0</ele></trkpt></trkseg></trk><trk><name>Middle Ridge South</name><trkseg><trkpt lat="34.512839084907455" lon="-92.87942494215184"><ele>227.54</ele></trkpt><trkpt lat="34.51304077170789" lon="-92.8789396584034"><ele>227.0</ele></trkpt><trkpt lat="34.51325945556164" lon="-92.8785783983767"><ele>231.0</ele></trkpt><trkpt lat="34.513520719483495" lon="-92.87811756134033"><ele>232.0</ele></trkpt><trkpt lat="34.51381903141737" lon="-92.8775701392442"><ele>237.0</ele></trkpt><trkpt lat="34.51414341107011" lon="-92.87711039185524"><ele>240.0</ele></trkpt><trkpt lat="34.514202335849404" lon="-92.8767720144242"><ele>237.0</ele></trkpt><trkpt lat="34.51404978521168" lon="-92.87634135223925"><ele>229.2</ele></trkpt><trkpt lat="34.51385666616261" lon="-92.87585847079754"><ele>221.0</ele></trkpt><trkpt lat="34.51355525292456" lon="-92.87555890157819"><ele>213.49</ele></trkpt><trkpt lat="34.51332678846562" lon="-92.87549834093133"><ele>212.0</ele></trkpt></trkseg></trk><trk><name>Turkey Road</name><trkseg><trkpt lat="34.511117491095284" lon="-92.87992377765477"><ele>194.0</ele></trkpt><trkpt lat="34.51138869859278" lon="-92.87961155176163"><ele>195.68</ele></trkpt><trkpt lat="34.51165775768459" lon="-92.87911861203611"><ele>198.0</ele></trkpt><trkpt lat="34.511882308870554" lon="-92.87861184217036"><ele>198.0</ele></trkpt><trkpt lat="34.51206595636904" lon="-92.87807657383382"><ele>201.08</ele></trkpt><trkpt lat="34.512235186994076" lon="-92.87761674262583"><ele>205.0</ele></trkpt><trkpt lat="34.5123356860131" lon="-92.87693604826927"><ele>208.0</ele></trkpt><trkpt lat="34.51263844035566" lon="-92.87647856399417"><ele>207.0</ele></trkpt><trkpt lat="34.5129541028291" lon="-92.87616164423525"><ele>208.0</ele></trkpt><trkpt lat="34.51324185356498" lon="-92.87565629929304"><ele>211.12</ele></trkpt><trkpt lat="34.51348526403308" lon="-92.87517023272812"><ele>210.0</ele></trkpt><trkpt lat="34.51379623264074" lon="-92.87486504763365"><ele>205.93</ele></trkpt><trkpt lat="34.514042157679796" lon="-92.87416247650981"><ele>208.0</ele></trkpt><trkpt lat="34.51436008326709" lon="-92.87360918708146"><ele>211.0</ele></trkpt><trkpt lat="34.51465110294521" lon="-92.87308825179935"><ele>208.0</ele></trkpt><trkpt lat="34.51499794609845" lon="-92.87251182831824"><ele>209.0</ele></trkpt><trkpt lat="34.51540522277355" lon="-92.87226070649922"><ele>205.0</ele></trkpt><trkpt lat="34.51591878198087" lon="-92.87209063768387"><ele>201.0</ele></trkpt><trkpt lat="34.51634355745653" lon="-92.87183388524716"><ele>198.0</ele></trkpt><trkpt lat="34.51665152795613" lon="-92.87173742428422"><ele>195.0</ele></trkpt><trkpt lat="34.51702737249434" lon="-92.87124683149159"><ele>193.0</ele></trkpt><trkpt lat="34.51712016016245" lon="-92.87061123177409"><ele>200.0</ele></trkpt><trkpt lat="34.51671657152474" lon="-92.8703001793474"><ele>203.0</ele></trkpt><trkpt lat="34.516718750819564" lon="-92.86962057463825"><ele>201.0</ele></trkpt><trkpt lat="34.51704732142389" lon="-92.86903291940689"><ele>201.0</ele></trkpt><trkpt lat="34.51746574603021" lon="-92.86854526028037"><ele>198.0</ele></trkpt><trkpt lat="34.51791669242084" lon="-92.86807520315051"><ele>194.51</ele></trkpt><trkpt lat="34.518434861674905" lon="-92.86809087730944"><ele>188.0</ele></trkpt><trkpt lat="34.51887340284884" lon="-92.86787814460695"><ele>187.0</ele></trkpt><trkpt lat="34.518700232729316" lon="-92.86736475303769"><ele>194.62</ele></trkpt><trkpt lat="34.51862651056008" lon="-92.86718926490875"><ele>197.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Southwest</name><extensions><gpxx:TrackExtension><gpxx:DisplayColor>DarkYellow</gpxx:DisplayColor></gpxx:TrackExtension></extensions><trkseg><trkpt lat="34.505515540454034" lon="-92.87955501207838"><ele>265.0</ele></trkpt><trkpt lat="34.50551709160209" lon="-92.87954332306981"><ele>265.0546875</ele></trkpt><trkpt lat="34.505526227876544" lon="-92.87952044047415"><ele>266.0</ele></trkpt><trkpt lat="34.5055388007313" lon="-92.8794975578785"><ele>266.0</ele></trkpt><trkpt lat="34.505557073280215" lon="-92.87947316654027"><ele>266.98148010449404</ele></trkpt><trkpt lat="34.50557668693364" lon="-92.87944885902107"><ele>267.03738433676165</ele></trkpt><trkpt lat="34.50559680350125" lon="-92.87942103110254"><ele>268.0</ele></trkpt><trkpt lat="34.50561926700175" lon="-92.87939144298434"><ele>268.55757243704284</ele></trkpt><trkpt lat="34.505644496530294" lon="-92.87936076521873"><ele>269.0</ele></trkpt><trkpt lat="34.505665032193065" lon="-92.87933176383376"><ele>269.9140625</ele></trkpt><trkpt lat="34.5056857354939" lon="-92.87930083461106"><ele>270.0</ele></trkpt><trkpt lat="34.505704175680876" lon="-92.87926797755063"><ele>270.88671875</ele></trkpt><trkpt lat="34.50572102330625" lon="-92.87923528812826"><ele>271.41015625046566</ele></trkpt><trkpt lat="34.50573661364615" lon="-92.87919891066849"><ele>272.0</ele></trkpt><trkpt lat="34.50575270690024" lon="-92.87916144356132"><ele>272.0</ele></trkpt><trkpt lat="34.50576980598271" lon="-92.87912238389254"><ele>273.0</ele></trkpt><trkpt lat="34.505785228684545" lon="-92.87907963618636"><ele>273.0</ele></trkpt><trkpt lat="34.5057980529964" lon="-92.879031104967"><ele>273.97036043036087</ele></trkpt><trkpt lat="34.505805345252156" lon="-92.87897913716733"><ele>274.0</ele></trkpt><trkpt lat="34.50580744072795" lon="-92.87892842665315"><ele>274.71093749953434</ele></trkpt><trkpt lat="34.50580450706184" lon="-92.87887838669121"><ele>275.0014763590502</ele></trkpt><trkpt lat="34.505797969177365" lon="-92.87883035838604"><ele>276.0</ele></trkpt><trkpt lat="34.50578983873129" lon="-92.87877880968153"><ele>276.0</ele></trkpt><trkpt lat="34.50578212738037" lon="-92.87872432731092"><ele>276.0</ele></trkpt><trkpt lat="34.50577366165817" lon="-92.87866372615099"><ele>276.0</ele></trkpt><trkpt lat="34.50576310046017" lon="-92.8786027058959"><ele>277.0</ele></trkpt><trkpt lat="34.50575413182378" lon="-92.87854797206819"><ele>277.0</ele></trkpt><trkpt lat="34.505746588110924" lon="-92.87850262597203"><ele>277.0</ele></trkpt><trkpt lat="34.50574038550258" lon="-92.87846717052162"><ele>277.0</ele></trkpt><trkpt lat="34.50573451817036" lon="-92.87843791767955"><ele>277.0</ele></trkpt><trkpt lat="34.505728567019105" lon="-92.87840975448489"><ele>277.0</ele></trkpt><trkpt lat="34.50572337023914" lon="-92.8783904761076"><ele>277.0</ele></trkpt><trkpt lat="34.50571917928755" lon="-92.87837186828256"><ele>277.0</ele></trkpt><trkpt lat="34.50571565888822" lon="-92.8783489856869"><ele>277.0</ele></trkpt><trkpt lat="34.50571264140308" lon="-92.87831998430192"><ele>277.0</ele></trkpt><trkpt lat="34.50571155175567" lon="-92.87828469648957"><ele>277.0</ele></trkpt><trkpt lat="34.50571230612695" lon="-92.87824781611562"><ele>277.0</ele></trkpt><trkpt lat="34.505715826526284" lon="-92.87820942699909"><ele>277.0</ele></trkpt><trkpt lat="34.5057201012969" lon="-92.87817170843482"><ele>277.0</ele></trkpt><trkpt lat="34.50572630390525" lon="-92.87813759408891"><ele>277.0</ele></trkpt><trkpt lat="34.505731500685215" lon="-92.87811169400811"><ele>277.0</ele></trkpt><trkpt lat="34.50573602691293" lon="-92.8780899848789"><ele>277.0</ele></trkpt><trkpt lat="34.50574139133096" lon="-92.8780672699213"><ele>277.0</ele></trkpt><trkpt lat="34.50574650429189" lon="-92.87804438732564"><ele>277.0</ele></trkpt><trkpt lat="34.505752455443144" lon="-92.87801790051162"><ele>276.85546875046566</ele></trkpt><trkpt lat="34.505759999156" lon="-92.87798906676471"><ele>276.0</ele></trkpt><trkpt lat="34.5057687163353" lon="-92.87795503623784"><ele>276.0</ele></trkpt><trkpt lat="34.50577575713396" lon="-92.8779205866158"><ele>276.0</ele></trkpt><trkpt lat="34.505783300846815" lon="-92.8778859693557"><ele>276.0</ele></trkpt><trkpt lat="34.50579193420708" lon="-92.87785420194268"><ele>275.22656249953434</ele></trkpt><trkpt lat="34.50580350123346" lon="-92.87782260216773"><ele>275.0</ele></trkpt><trkpt lat="34.50581540353596" lon="-92.87779125384986"><ele>275.0</ele></trkpt><trkpt lat="34.50582764111459" lon="-92.87775898352265"><ele>274.7890625</ele></trkpt><trkpt lat="34.50583979487419" lon="-92.87772478535771"><ele>274.0</ele></trkpt><trkpt lat="34.5058514457196" lon="-92.8776893299073"><ele>274.0</ele></trkpt><trkpt lat="34.50586209073663" lon="-92.87765228189528"><ele>273.9592130254823</ele></trkpt><trkpt lat="34.505872651934624" lon="-92.87761255167425"><ele>273.0</ele></trkpt><trkpt lat="34.505884386599064" lon="-92.87756930105388"><ele>273.0</ele></trkpt><trkpt lat="34.50589846819639" lon="-92.87752236239612"><ele>272.76171875</ele></trkpt><trkpt lat="34.505915232002735" lon="-92.8774734120816"><ele>272.0</ele></trkpt><trkpt lat="34.50593467801809" lon="-92.87742010317743"><ele>272.0</ele></trkpt><trkpt lat="34.50595714151859" lon="-92.87736210040748"><ele>271.29296875</ele></trkpt><trkpt lat="34.505983125418425" lon="-92.8773005772382"><ele>271.0</ele></trkpt><trkpt lat="34.50601137243211" lon="-92.87723829969764"><ele>270.52343750046566</ele></trkpt><trkpt lat="34.506041798740625" lon="-92.87717627361417"><ele>270.0</ele></trkpt><trkpt lat="34.5060742367059" lon="-92.8771195281297"><ele>270.0</ele></trkpt><trkpt lat="34.506104327738285" lon="-92.87707258947194"><ele>269.0</ele></trkpt><trkpt lat="34.50612938962877" lon="-92.87703487090766"><ele>269.0</ele></trkpt><trkpt lat="34.50615528970957" lon="-92.87699799053371"><ele>269.0</ele></trkpt><trkpt lat="34.506183452904224" lon="-92.87696060724556"><ele>269.0</ele></trkpt><trkpt lat="34.506214298307896" lon="-92.8769223857671"><ele>269.0</ele></trkpt><trkpt lat="34.50624430552125" lon="-92.87688290700316"><ele>269.0</ele></trkpt><trkpt lat="34.506270959973335" lon="-92.87684736773372"><ele>269.0</ele></trkpt><trkpt lat="34.506297279149294" lon="-92.87681492976844"><ele>269.0</ele></trkpt><trkpt lat="34.50632217340171" lon="-92.87678391672671"><ele>269.0</ele></trkpt><trkpt lat="34.50634740293026" lon="-92.87675525061786"><ele>269.0</ele></trkpt><trkpt lat="34.50637363828719" lon="-92.87672507576644"><ele>269.0</ele></trkpt><trkpt lat="34.50640205293894" lon="-92.87669146433473"><ele>269.0</ele></trkpt><trkpt lat="34.50642954558134" lon="-92.87666003219783"><ele>270.0</ele></trkpt><trkpt lat="34.50644756667316" lon="-92.87664025090635"><ele>270.0</ele></trkpt><trkpt lat="34.50646139681339" lon="-92.87662340328097"><ele>270.0</ele></trkpt><trkpt lat="34.50647480785847" lon="-92.87660705856979"><ele>270.0</ele></trkpt><trkpt lat="34.50648235157132" lon="-92.87659725174308"><ele>270.54595443455037</ele></trkpt><trkpt lat="34.50648386031389" lon="-92.87659456953406"><ele>270.67814321512304</ele></trkpt><trkpt lat="34.50648377649486" lon="-92.8765946533531"><ele>270.6732415648173</ele></trkpt><trkpt lat="34.506483944132924" lon="-92.87659524008632"><ele>270.6615572358569</ele></trkpt><trkpt lat="34.506477573886514" lon="-92.87660186178982"><ele>270.1622646487158</ele></trkpt><trkpt lat="34.50648377649486" lon="-92.8765946533531"><ele>270.6732415648173</ele></trkpt><trkpt lat="34.5064767356962" lon="-92.87660538218915"><ele>270.0</ele></trkpt><trkpt lat="34.50648620724678" lon="-92.87659800611436"><ele>270.6703957571299</ele></trkpt><trkpt lat="34.50650221668184" lon="-92.87658283486962"><ele>271.0</ele></trkpt><trkpt lat="34.5065179746598" lon="-92.87656808272004"><ele>271.0</ele></trkpt><trkpt lat="34.50652711093426" lon="-92.87655970081687"><ele>271.0</ele></trkpt><trkpt lat="34.506527949124575" lon="-92.87655911408365"><ele>271.0</ele></trkpt><trkpt lat="34.5065420307219" lon="-92.87654637359083"><ele>271.0</ele></trkpt><trkpt lat="34.50656197965145" lon="-92.8765291068703"><ele>271.9068927895379</ele></trkpt><trkpt lat="34.50658720918" lon="-92.87650748156011"><ele>272.0</ele></trkpt><trkpt lat="34.506620317697525" lon="-92.87648015655577"><ele>272.0</ele></trkpt><trkpt lat="34.50665904209018" lon="-92.87645073607564"><ele>273.0</ele></trkpt><trkpt lat="34.506703801453114" lon="-92.87642148323357"><ele>273.4471396672619</ele></trkpt><trkpt lat="34.50675191357732" lon="-92.87639080546796"><ele>274.0</ele></trkpt><trkpt lat="34.50680329464376" lon="-92.87635836750269"><ele>275.0</ele></trkpt><trkpt lat="34.50685325078666" lon="-92.87632408551872"><ele>275.08203125</ele></trkpt><trkpt lat="34.50689868070185" lon="-92.87628460675478"><ele>276.0</ele></trkpt><trkpt lat="34.50693480670452" lon="-92.87624018266797"><ele>276.0</ele></trkpt><trkpt lat="34.50696590356529" lon="-92.87619257345796"><ele>277.0</ele></trkpt><trkpt lat="34.506988702341914" lon="-92.87613733671606"><ele>277.0</ele></trkpt><trkpt lat="34.507001945748925" lon="-92.87607237696648"><ele>278.0</ele></trkpt><trkpt lat="34.50701896101236" lon="-92.8760106023401"><ele>278.0</ele></trkpt><trkpt lat="34.50704033486545" lon="-92.87595234811306"><ele>278.0</ele></trkpt><trkpt lat="34.50706765986979" lon="-92.87589116021991"><ele>278.0</ele></trkpt><trkpt lat="34.50709925964475" lon="-92.8758274577558"><ele>278.0</ele></trkpt><trkpt lat="34.507130943238735" lon="-92.87576425820589"><ele>278.0</ele></trkpt><trkpt lat="34.50716245919466" lon="-92.8757029864937"><ele>278.0</ele></trkpt><trkpt lat="34.50719330459833" lon="-92.87564657628536"><ele>278.0</ele></trkpt><trkpt lat="34.50722448527813" lon="-92.87559108808637"><ele>277.20463517342637</ele></trkpt><trkpt lat="34.50725415721536" lon="-92.87553518079221"><ele>277.0</ele></trkpt><trkpt lat="34.507279051467776" lon="-92.87548539228737"><ele>276.83203125046566</ele></trkpt><trkpt lat="34.507296569645405" lon="-92.87544901482761"><ele>276.0</ele></trkpt><trkpt lat="34.50731065124273" lon="-92.87541816942394"><ele>276.0</ele></trkpt><trkpt lat="34.507323391735554" lon="-92.8753908444196"><ele>276.0</ele></trkpt><trkpt lat="34.507328337058425" lon="-92.87537910975516"><ele>276.0</ele></trkpt><trkpt lat="34.507315177470446" lon="-92.87540207616985"><ele>276.0</ele></trkpt><trkpt lat="34.50731014832854" lon="-92.8754101227969"><ele>276.0</ele></trkpt><trkpt lat="34.507306795567274" lon="-92.87541498430073"><ele>276.0</ele></trkpt><trkpt lat="34.50732188299298" lon="-92.87539201788604"><ele>276.0</ele></trkpt><trkpt lat="34.50733789242804" lon="-92.87536385469139"><ele>276.0</ele></trkpt><trkpt lat="34.507364965975285" lon="-92.8753216098994"><ele>275.0</ele></trkpt><trkpt lat="34.50739832594991" lon="-92.8752716537565"><ele>275.0</ele></trkpt><trkpt lat="34.50743721798062" lon="-92.87521909922361"><ele>274.0</ele></trkpt><trkpt lat="34.507480803877115" lon="-92.87516738288105"><ele>274.0</ele></trkpt><trkpt lat="34.50752749107778" lon="-92.87511591799557"><ele>273.0</ele></trkpt><trkpt lat="34.507578453049064" lon="-92.87506210617721"><ele>273.0</ele></trkpt><trkpt lat="34.50762966647744" lon="-92.8750108089298"><ele>273.0</ele></trkpt><trkpt lat="34.50767828151584" lon="-92.87495867349207"><ele>272.33235182470526</ele></trkpt><trkpt lat="34.5077302493155" lon="-92.87491165101528"><ele>272.0</ele></trkpt><trkpt lat="34.50777760706842" lon="-92.87486521527171"><ele>272.0</ele></trkpt><trkpt lat="34.50782203115523" lon="-92.87481836043298"><ele>272.0</ele></trkpt><trkpt lat="34.50786494649947" lon="-92.87477251142263"><ele>272.0</ele></trkpt><trkpt lat="34.50790844857693" lon="-92.87473051808774"><ele>272.0</ele></trkpt><trkpt lat="34.50795195065439" lon="-92.87468743510544"><ele>271.0</ele></trkpt><trkpt lat="34.50799654237926" lon="-92.87464125081897"><ele>271.0</ele></trkpt><trkpt lat="34.50804247520864" lon="-92.87459347397089"><ele>270.6103040001323</ele></trkpt><trkpt lat="34.5080878213048" lon="-92.87454443983734"><ele>270.0</ele></trkpt><trkpt lat="34.50813475996256" lon="-92.8744928073138"><ele>270.0</ele></trkpt><trkpt lat="34.50817884877324" lon="-92.87444301880896"><ele>270.0</ele></trkpt><trkpt lat="34.50822226703167" lon="-92.87438753060997"><ele>269.0</ele></trkpt><trkpt lat="34.50826325453818" lon="-92.87432977929711"><ele>269.0</ele></trkpt><trkpt lat="34.50830281712115" lon="-92.87427236326039"><ele>269.0</ele></trkpt><trkpt lat="34.50834103859961" lon="-92.87421695888042"><ele>269.0</ele></trkpt><trkpt lat="34.50837573967874" lon="-92.87416230887175"><ele>269.8931323025914</ele></trkpt><trkpt lat="34.508404321968555" lon="-92.87411319091916"><ele>270.0</ele></trkpt><trkpt lat="34.508427204564214" lon="-92.87407530471683"><ele>270.0</ele></trkpt><trkpt lat="34.50844346545637" lon="-92.87404814735055"><ele>270.0</ele></trkpt><trkpt lat="34.50845335610211" lon="-92.87403247319162"><ele>270.0</ele></trkpt><trkpt lat="34.508455535396934" lon="-92.87402601912618"><ele>270.0</ele></trkpt><trkpt lat="34.50844991952181" lon="-92.87402668967843"><ele>270.0</ele></trkpt><trkpt lat="34.508452685549855" lon="-92.87403046153486"><ele>270.0</ele></trkpt><trkpt lat="34.50846173800528" lon="-92.8740197326988"><ele>270.0</ele></trkpt><trkpt lat="34.508476071059704" lon="-92.87399835884571"><ele>270.0</ele></trkpt><trkpt lat="34.508495349437" lon="-92.8739697765559"><ele>270.0</ele></trkpt><trkpt lat="34.508521500974894" lon="-92.87393063306808"><ele>270.0</ele></trkpt><trkpt lat="34.50855310074985" lon="-92.87388285622"><ele>270.0</ele></trkpt><trkpt lat="34.50858780182898" lon="-92.87382636219263"><ele>270.0</ele></trkpt><trkpt lat="34.508624682202935" lon="-92.87376693449914"><ele>270.0</ele></trkpt><trkpt lat="34.508658880367875" lon="-92.87371127866209"><ele>270.0</ele></trkpt><trkpt lat="34.50868796557188" lon="-92.87365168333054"><ele>270.0</ele></trkpt><trkpt lat="34.508715625852346" lon="-92.87358596920967"><ele>270.0</ele></trkpt><trkpt lat="34.508745800703764" lon="-92.87351765669882"><ele>270.0</ele></trkpt><trkpt lat="34.50878167524934" lon="-92.87344984710217"><ele>270.0</ele></trkpt><trkpt lat="34.50881922617555" lon="-92.87337684072554"><ele>270.43359374953434</ele></trkpt><trkpt lat="34.508863566443324" lon="-92.87329855374992"><ele>271.0</ele></trkpt><trkpt lat="34.50891385786235" lon="-92.87322403863072"><ele>271.0</ele></trkpt><trkpt lat="34.508964316919446" lon="-92.87314910441637"><ele>272.0</ele></trkpt><trkpt lat="34.50901435688138" lon="-92.87307601422071"><ele>272.0</ele></trkpt><trkpt lat="34.50906800106168" lon="-92.87300795316696"><ele>273.0</ele></trkpt><trkpt lat="34.509121561422944" lon="-92.87294508889318"><ele>273.0</ele></trkpt><trkpt lat="34.50917109847069" lon="-92.87288616411388"><ele>274.0</ele></trkpt><trkpt lat="34.509219881147146" lon="-92.8728227969259"><ele>275.0</ele></trkpt><trkpt lat="34.5092567615211" lon="-92.87275616079569"><ele>275.359375</ele></trkpt><trkpt lat="34.509284337982535" lon="-92.87268692627549"><ele>276.0</ele></trkpt><trkpt lat="34.50931090861559" lon="-92.87262196652591"><ele>276.0</ele></trkpt><trkpt lat="34.509340496733785" lon="-92.87256455048919"><ele>277.0</ele></trkpt><trkpt lat="34.509376119822264" lon="-92.8725067153573"><ele>277.0</ele></trkpt><trkpt lat="34.509418196976185" lon="-92.87245483137667"><ele>277.33426505699754</ele></trkpt><trkpt lat="34.50947234407067" lon="-92.8724171128124"><ele>278.0</ele></trkpt><trkpt lat="34.509529173374176" lon="-92.87238207645714"><ele>278.0</ele></trkpt><trkpt lat="34.50959245674312" lon="-92.87235558964312"><ele>279.0</ele></trkpt><trkpt lat="34.50965917669237" lon="-92.87232834845781"><ele>279.0</ele></trkpt><trkpt lat="34.50972765684128" lon="-92.87229666486382"><ele>279.0</ele></trkpt><trkpt lat="34.509797394275665" lon="-92.87226213142276"><ele>279.7799033410847</ele></trkpt><trkpt lat="34.50986562296748" lon="-92.87222776561975"><ele>280.0</ele></trkpt><trkpt lat="34.509933181107044" lon="-92.87219096906483"><ele>280.0</ele></trkpt><trkpt lat="34.509995793923736" lon="-92.87214528769255"><ele>280.0</ele></trkpt><trkpt lat="34.51005136594176" lon="-92.87209239788353"><ele>280.0</ele></trkpt><trkpt lat="34.510099310427904" lon="-92.87203355692327"><ele>281.0</ele></trkpt><trkpt lat="34.51014356687665" lon="-92.87197303958237"><ele>281.0</ele></trkpt><trkpt lat="34.510179944336414" lon="-92.87191453389823"><ele>281.0</ele></trkpt><trkpt lat="34.51020693406463" lon="-92.87186558358371"><ele>281.9416815303266</ele></trkpt><trkpt lat="34.510224871337414" lon="-92.87183071486652"><ele>282.0</ele></trkpt><trkpt lat="34.51023714636657" lon="-92.87180171348155"><ele>282.0</ele></trkpt><trkpt lat="34.510242976248264" lon="-92.87178117781878"><ele>282.0</ele></trkpt><trkpt lat="34.51025898568332" lon="-92.87175150588155"><ele>282.0</ele></trkpt><trkpt lat="34.51028052717447" lon="-92.87171202711761"><ele>282.0</ele></trkpt><trkpt lat="34.51030584052205" lon="-92.87166366353631"><ele>282.0</ele></trkpt><trkpt lat="34.51033702120185" lon="-92.87161110900342"><ele>282.0828882089472</ele></trkpt><trkpt lat="34.510371554642916" lon="-92.8715550340712"><ele>283.0</ele></trkpt><trkpt lat="34.510407680645585" lon="-92.87149761803448"><ele>283.0</ele></trkpt><trkpt lat="34.51044422574341" lon="-92.87143944762647"><ele>283.0</ele></trkpt><trkpt lat="34.51048546470702" lon="-92.87138102576137"><ele>283.0</ele></trkpt><trkpt lat="34.51053122989833" lon="-92.87132729776204"><ele>283.0</ele></trkpt><trkpt lat="34.510574731975794" lon="-92.87127600051463"><ele>283.0</ele></trkpt><trkpt lat="34.510617563501" lon="-92.87122084759176"><ele>283.0</ele></trkpt><trkpt lat="34.51065964065492" lon="-92.87116938270628"><ele>283.0</ele></trkpt><trkpt lat="34.51070247218013" lon="-92.87112068384886"><ele>284.0</ele></trkpt><trkpt lat="34.51074119657278" lon="-92.871073493734"><ele>284.0</ele></trkpt><trkpt lat="34.510776065289974" lon="-92.87103124894202"><ele>284.0</ele></trkpt><trkpt lat="34.5108094252646" lon="-92.8709921054542"><ele>284.0</ele></trkpt><trkpt lat="34.510841611772776" lon="-92.87095396779478"><ele>284.05684178248003</ele></trkpt><trkpt lat="34.51087455265224" lon="-92.87091214209795"><ele>285.0</ele></trkpt><trkpt lat="34.5109043084085" lon="-92.87086687982082"><ele>285.0</ele></trkpt><trkpt lat="34.51092920266092" lon="-92.87081734277308"><ele>285.0</ele></trkpt><trkpt lat="34.51095124706626" lon="-92.8707613516599"><ele>285.0</ele></trkpt><trkpt lat="34.51097119599581" lon="-92.87070066668093"><ele>285.1652961168438</ele></trkpt><trkpt lat="34.51098972000182" lon="-92.87063545547426"><ele>286.0</ele></trkpt><trkpt lat="34.51100707054138" lon="-92.87056387402117"><ele>286.0</ele></trkpt><trkpt lat="34.511023331433535" lon="-92.87048659287393"><ele>286.0</ele></trkpt><trkpt lat="34.51104353182018" lon="-92.8704119939357"><ele>286.0</ele></trkpt><trkpt lat="34.51107018627226" lon="-92.87034083157778"><ele>286.0</ele></trkpt><trkpt lat="34.51109700836241" lon="-92.87027134560049"><ele>286.0</ele></trkpt><trkpt lat="34.51113011687994" lon="-92.87020563147962"><ele>286.0</ele></trkpt><trkpt lat="34.51116825453937" lon="-92.87014327012002"><ele>286.0</ele></trkpt><trkpt lat="34.51121234335005" lon="-92.87008501589298"><ele>286.0</ele></trkpt><trkpt lat="34.51125601306558" lon="-92.87002868950367"><ele>286.0</ele></trkpt><trkpt lat="34.51129959896207" lon="-92.86997253075242"><ele>286.0</ele></trkpt><trkpt lat="34.51134704053402" lon="-92.86991779692471"><ele>286.0</ele></trkpt><trkpt lat="34.51139733195305" lon="-92.86986717022955"><ele>285.00286709833745</ele></trkpt><trkpt lat="34.51144619844854" lon="-92.86982266232371"><ele>285.0</ele></trkpt><trkpt lat="34.511495819315314" lon="-92.86978083662689"><ele>285.0</ele></trkpt><trkpt lat="34.51154317706823" lon="-92.86973398178816"><ele>284.0</ele></trkpt><trkpt lat="34.51158198527992" lon="-92.86968050524592"><ele>284.0</ele></trkpt><trkpt lat="34.51161442324519" lon="-92.869619904086"><ele>284.0</ele></trkpt><trkpt lat="34.511639485135674" lon="-92.86955745890737"><ele>284.0</ele></trkpt><trkpt lat="34.51166220009327" lon="-92.86949459463358"><ele>284.0</ele></trkpt><trkpt lat="34.51168877072632" lon="-92.8694383520633"><ele>284.0</ele></trkpt><trkpt lat="34.51171986758709" lon="-92.8693883959204"><ele>284.0</ele></trkpt><trkpt lat="34.511747444048524" lon="-92.86934606730938"><ele>283.0</ele></trkpt><trkpt lat="34.51177527196705" lon="-92.86930407397449"><ele>283.0</ele></trkpt><trkpt lat="34.51180594973266" lon="-92.86926342174411"><ele>283.0</ele></trkpt><trkpt lat="34.51183972880244" lon="-92.86922302097082"><ele>283.0</ele></trkpt><trkpt lat="34.51187032274902" lon="-92.86918773315847"><ele>282.33984375046566</ele></trkpt><trkpt lat="34.51189856976271" lon="-92.86915680393577"><ele>282.0</ele></trkpt><trkpt lat="34.51192690059543" lon="-92.86912478506565"><ele>282.0</ele></trkpt><trkpt lat="34.511951711028814" lon="-92.86909863352776"><ele>281.07126754330477</ele></trkpt><trkpt lat="34.51197509653866" lon="-92.86907675676048"><ele>281.0</ele></trkpt><trkpt lat="34.512000577524304" lon="-92.86905135959387"><ele>280.0</ele></trkpt><trkpt lat="34.51203024946153" lon="-92.86903115920722"><ele>280.0</ele></trkpt><trkpt lat="34.512060256674886" lon="-92.86902386695147"><ele>280.0</ele></trkpt><trkpt lat="34.512089509516954" lon="-92.86902604624629"><ele>280.0</ele></trkpt><trkpt lat="34.51211356557906" lon="-92.86903685890138"><ele>280.0</ele></trkpt><trkpt lat="34.51214306987822" lon="-92.8690583165735"><ele>280.0</ele></trkpt><trkpt lat="34.51218162663281" lon="-92.8690826240927"><ele>279.1663002625646</ele></trkpt><trkpt lat="34.51223501935601" lon="-92.86909896880388"><ele>279.0</ele></trkpt><trkpt lat="34.51228958554566" lon="-92.86910223774612"><ele>278.0</ele></trkpt><trkpt lat="34.512351276353" lon="-92.8690995555371"><ele>277.0</ele></trkpt><trkpt lat="34.512414056807756" lon="-92.86908572539687"><ele>277.0</ele></trkpt><trkpt lat="34.51247499324381" lon="-92.86906871013343"><ele>276.0</ele></trkpt><trkpt lat="34.51253735460341" lon="-92.86905068904161"><ele>276.0</ele></trkpt><trkpt lat="34.51259829103947" lon="-92.86903342232108"><ele>276.0</ele></trkpt><trkpt lat="34.51265076175332" lon="-92.86901732906699"><ele>275.0</ele></trkpt><trkpt lat="34.512698370963335" lon="-92.86900484003127"><ele>275.0</ele></trkpt><trkpt lat="34.5127381850034" lon="-92.86899033933878"><ele>275.0</ele></trkpt><trkpt lat="34.51276500709355" lon="-92.86898262798786"><ele>275.0</ele></trkpt><trkpt lat="34.512786800041795" lon="-92.86897617392242"><ele>274.5582799866576</ele></trkpt><trkpt lat="34.51278733355692" lon="-92.86897604054364"><ele>274.53713100707785</ele></trkpt></trkseg></trk><trk><name>Broken Leg Trail</name><trkseg><trkpt lat="34.51111199485497" lon="-92.87992308935594"><ele>194.0</ele></trkpt><trkpt lat="34.51073055155575" lon="-92.87958640605211"><ele>198.05</ele></trkpt><trkpt lat="34.51023526489735" lon="-92.8794214501977"><ele>198.4</ele></trkpt><trkpt lat="34.50968767516315" lon="-92.87948473356664"><ele>204.43</ele></trkpt><trkpt lat="34.50927780009806" lon="-92.87932732142508"><ele>210.0</ele></trkpt><trkpt lat="34.50892483815551" lon="-92.87874528206885"><ele>217.0</ele></trkpt><trkpt lat="34.50869877822697" lon="-92.87805955857038"><ele>234.0</ele></trkpt><trkpt lat="34.508517226204276" lon="-92.87758665159345"><ele>243.0</ele></trkpt><trkpt lat="34.50802210718393" lon="-92.87703671492636"><ele>255.0</ele></trkpt><trkpt lat="34.507593708112836" lon="-92.87661594338715"><ele>265.0</ele></trkpt><trkpt lat="34.507196908816695" lon="-92.87624328397214"><ele>274.25</ele></trkpt><trkpt lat="34.50703631390827" lon="-92.87610365030352"><ele>277.13</ele></trkpt></trkseg></trk><trk><name>171 Main Road</name><trkseg><trkpt lat="34.511096178926884" lon="-92.87027219020474"><ele>286.0</ele></trkpt><trkpt lat="34.51083985157311" lon="-92.86980539560318"><ele>273.74</ele></trkpt><trkpt lat="34.51142222620547" lon="-92.86877106875181"><ele>266.97</ele></trkpt><trkpt lat="34.51182237826288" lon="-92.86776096560061"><ele>249.89</ele></trkpt><trkpt lat="34.511898485943675" lon="-92.86703366786242"><ele>232.98</ele></trkpt><trkpt lat="34.51161140576005" lon="-92.86640527658165"><ele>217.0</ele></trkpt><trkpt lat="34.51110044494271" lon="-92.86587780341506"><ele>204.0</ele></trkpt><trkpt lat="34.51086139306426" lon="-92.86526198498905"><ele>198.0</ele></trkpt><trkpt lat="34.510095957666636" lon="-92.86475370638072"><ele>192.0</ele></trkpt><trkpt lat="34.50938366353512" lon="-92.8641574177891"><ele>190.0</ele></trkpt><trkpt lat="34.50881729833782" lon="-92.86369213834405"><ele>179.5</ele></trkpt><trkpt lat="34.50843499973416" lon="-92.86328452639282"><ele>174.0</ele></trkpt><trkpt lat="34.50778699479997" lon="-92.86344587802887"><ele>172.0</ele></trkpt><trkpt lat="34.50681938789785" lon="-92.86387318745255"><ele>165.0</ele></trkpt><trkpt lat="34.506182530894876" lon="-92.8633893840015"><ele>160.0</ele></trkpt><trkpt lat="34.505173014476895" lon="-92.86331746727228"><ele>156.25</ele></trkpt><trkpt lat="34.50400575064123" lon="-92.8631798364222"><ele>153.0</ele></trkpt><trkpt lat="34.502555849030614" lon="-92.86316516809165"><ele>157.08</ele></trkpt><trkpt lat="34.50116871065719" lon="-92.86312315497975"><ele>168.0</ele></trkpt></trkseg></trk><trk><name>Southwest Trail</name><trkseg><trkpt lat="34.50517194566778" lon="-92.87375687800974"><ele>194.0</ele></trkpt><trkpt lat="34.505260940641165" lon="-92.87321330979466"><ele>188.0</ele></trkpt><trkpt lat="34.505500411614776" lon="-92.87280041724443"><ele>184.0</ele></trkpt><trkpt lat="34.50574357062578" lon="-92.87229959852993"><ele>186.52</ele></trkpt><trkpt lat="34.50604699552059" lon="-92.87179316394031"><ele>184.24</ele></trkpt><trkpt lat="34.50638419948518" lon="-92.87147012539208"><ele>186.75</ele></trkpt><trkpt lat="34.506727354601026" lon="-92.87105580791831"><ele>192.0</ele></trkpt><trkpt lat="34.50669684447348" lon="-92.87060134112835"><ele>187.0</ele></trkpt><trkpt lat="34.506593914702535" lon="-92.87021485157311"><ele>180.0</ele></trkpt><trkpt lat="34.50673188082874" lon="-92.86975158378482"><ele>182.64</ele></trkpt><trkpt lat="34.50683581910977" lon="-92.86926652147615"><ele>185.3</ele></trkpt></trkseg></trk><trk><name>171 Inner Loop</name><trkseg><trkpt lat="34.51106012062115" lon="-92.86588117355113"><ele>204.0</ele></trkpt><trkpt lat="34.510730635374784" lon="-92.8662835713476"><ele>201.56</ele></trkpt><trkpt lat="34.51028999872506" lon="-92.8668822068721"><ele>201.0</ele></trkpt><trkpt lat="34.50975313782692" lon="-92.8674387652427"><ele>197.0</ele></trkpt><trkpt lat="34.50922650285065" lon="-92.86813169717789"><ele>200.0</ele></trkpt><trkpt lat="34.508764911442995" lon="-92.86827427335083"><ele>196.0</ele></trkpt><trkpt lat="34.508330058306456" lon="-92.8679361473769"><ele>191.0</ele></trkpt><trkpt lat="34.507694374769926" lon="-92.86760807968676"><ele>188.0</ele></trkpt><trkpt lat="34.507039077579975" lon="-92.86742443218827"><ele>181.78</ele></trkpt><trkpt lat="34.50642912648618" lon="-92.86758368834853"><ele>172.71</ele></trkpt><trkpt lat="34.505892684683204" lon="-92.8673468157649"><ele>169.0</ele></trkpt><trkpt lat="34.505446096882224" lon="-92.86677852272987"><ele>167.0</ele></trkpt><trkpt lat="34.50520981103182" lon="-92.86607620306313"><ele>160.0</ele></trkpt><trkpt lat="34.505350794643164" lon="-92.8655494004488"><ele>163.31</ele></trkpt><trkpt lat="34.50506949797273" lon="-92.86501362919807"><ele>163.4</ele></trkpt><trkpt lat="34.5048120059073" lon="-92.86431198008358"><ele>159.0</ele></trkpt><trkpt lat="34.504912504926324" lon="-92.86358593963087"><ele>155.0</ele></trkpt><trkpt lat="34.50482381625789" lon="-92.86321227793509"><ele>154.0</ele></trkpt></trkseg></trk><trk><name>171 Outer Loop</name><trkseg><trkpt lat="34.50911267739744" lon="-92.86831183550285"><ele>200.0</ele></trkpt><trkpt lat="34.50893187895417" lon="-92.8689444065094"><ele>197.0</ele></trkpt><trkpt lat="34.50853449292481" lon="-92.86948839202523"><ele>196.0</ele></trkpt><trkpt lat="34.508094945922494" lon="-92.86982769146562"><ele>199.0</ele></trkpt><trkpt lat="34.50753243640065" lon="-92.8696561139077"><ele>192.12</ele></trkpt><trkpt lat="34.506926257163286" lon="-92.86928177811205"><ele>186.83</ele></trkpt><trkpt lat="34.50644086115062" lon="-92.86913509480655"><ele>182.0</ele></trkpt><trkpt lat="34.50603945180774" lon="-92.86869605071843"><ele>174.57</ele></trkpt><trkpt lat="34.50597499497235" lon="-92.86830369383097"><ele>168.0</ele></trkpt><trkpt lat="34.50586024671793" lon="-92.86773079074919"><ele>166.0</ele></trkpt><trkpt lat="34.505919685408244" lon="-92.86737357966314"><ele>169.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Cutoff</name><trkseg><trkpt lat="34.51181384210675" lon="-92.8678691284867"><ele>252.98</ele></trkpt><trkpt lat="34.5119350310415" lon="-92.86819757893682"><ele>260.2</ele></trkpt><trkpt lat="34.51211021281779" lon="-92.86860158666968"><ele>271.02</ele></trkpt><trkpt lat="34.51210229027073" lon="-92.86903120055628"><ele>280.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Northeast</name><trkseg><trkpt lat="34.51278935144348" lon="-92.86897613441988"><ele>274.48</ele></trkpt><trkpt lat="34.51332340948284" lon="-92.86877970211208"><ele>272.0</ele></trkpt><trkpt lat="34.513852559030056" lon="-92.86824275739491"><ele>261.26</ele></trkpt><trkpt lat="34.5142369531095" lon="-92.8676282800734"><ele>258.0</ele></trkpt><trkpt lat="34.51460089534521" lon="-92.86670501343906"><ele>267.0</ele></trkpt><trkpt lat="34.514972968026996" lon="-92.86556733772159"><ele>276.0</ele></trkpt><trkpt lat="34.5155821647495" lon="-92.86478321067989"><ele>278.0</ele></trkpt><trkpt lat="34.51604115776718" lon="-92.86397444084287"><ele>269.0</ele></trkpt><trkpt lat="34.51670944690704" lon="-92.86358384415507"><ele>260.0</ele></trkpt><trkpt lat="34.51708738692105" lon="-92.86322920583189"><ele>258.0</ele></trkpt><trkpt lat="34.51757789589465" lon="-92.86237668246031"><ele>263.0</ele></trkpt><trkpt lat="34.51814979314804" lon="-92.86080138757825"><ele>260.0</ele></trkpt><trkpt lat="34.5188788510859" lon="-92.85979304462671"><ele>259.0</ele></trkpt><trkpt lat="34.51978728175163" lon="-92.85890841856599"><ele>253.0</ele></trkpt><trkpt lat="34.52027393504977" lon="-92.85793997347355"><ele>255.0</ele></trkpt><trkpt lat="34.52076888643205" lon="-92.85721351392567"><ele>249.0</ele></trkpt><trkpt lat="34.52156885527074" lon="-92.85652209073305"><ele>247.0</ele></trkpt><trkpt lat="34.5222876034677" lon="-92.85555498674512"><ele>243.0</ele></trkpt><trkpt lat="34.5223515573889" lon="-92.85456189885736"><ele>247.0</ele></trkpt><trkpt lat="34.52179944142699" lon="-92.85420399159193"><ele>251.0</ele></trkpt><trkpt lat="34.52175920829177" lon="-92.85333235748112"><ele>249.0</ele></trkpt><trkpt lat="34.52208073809743" lon="-92.85226668231189"><ele>244.0</ele></trkpt><trkpt lat="34.522646348923445" lon="-92.85162203013897"><ele>239.0</ele></trkpt><trkpt lat="34.52317683957517" lon="-92.85062843933702"><ele>235.0</ele></trkpt><trkpt lat="34.52365418896079" lon="-92.84963241778314"><ele>232.0</ele></trkpt><trkpt lat="34.52391000947514" lon="-92.84889617787552"><ele>232.0</ele></trkpt></trkseg></trk><trk><name>Dollhouse Road</name><trkseg><trkpt lat="34.52509734073826" lon="-92.85133110635834"><ele>220.87</ele></trkpt><trkpt lat="34.52483067288995" lon="-92.85151239484549"><ele>227.57</ele></trkpt><trkpt lat="34.52449657022953" lon="-92.85171079449356"><ele>233.0</ele></trkpt><trkpt lat="34.5241854339838" lon="-92.8521538618952"><ele>237.43</ele></trkpt><trkpt lat="34.52374119311571" lon="-92.85234488546848"><ele>238.18</ele></trkpt><trkpt lat="34.52348361723125" lon="-92.85293262451887"><ele>241.1</ele></trkpt><trkpt lat="34.52320609241724" lon="-92.85347778350115"><ele>245.0</ele></trkpt><trkpt lat="34.52291574329138" lon="-92.85389947704971"><ele>244.0</ele></trkpt><trkpt lat="34.52267166227102" lon="-92.85431312397122"><ele>245.0</ele></trkpt><trkpt lat="34.5223857924866" lon="-92.85461808886738"><ele>248.0</ele></trkpt></trkseg></trk><trk><name>Turkey Road Extension</name><trkseg><trkpt lat="34.517044592579886" lon="-92.86326991092444"><ele>258.0</ele></trkpt><trkpt lat="34.51695076189935" lon="-92.8635685890913"><ele>257.83</ele></trkpt><trkpt lat="34.517097026109695" lon="-92.86385022103786"><ele>252.0</ele></trkpt><trkpt lat="34.517223509028554" lon="-92.86393814720213"><ele>249.07</ele></trkpt><trkpt lat="34.51723599806428" lon="-92.86418063566089"><ele>246.0</ele></trkpt><trkpt lat="34.51721747405827" lon="-92.86448598839343"><ele>243.9</ele></trkpt><trkpt lat="34.51712544076145" lon="-92.86478564143181"><ele>242.62</ele></trkpt><trkpt lat="34.517216300591826" lon="-92.86507515236735"><ele>239.62</ele></trkpt><trkpt lat="34.51748225837946" lon="-92.86546105518937"><ele>234.86</ele></trkpt><trkpt lat="34.51778995804489" lon="-92.86588777787983"><ele>226.0</ele></trkpt><trkpt lat="34.51809447258711" lon="-92.86615868099034"><ele>215.99</ele></trkpt><trkpt lat="34.51833453029394" lon="-92.86661272868514"><ele>205.25</ele></trkpt><trkpt lat="34.51862651056008" lon="-92.86718926490875"><ele>197.0</ele></trkpt></trkseg></trk><trk><name>Middle Ridge North</name><trkseg><trkpt lat="34.51617475149845" lon="-92.87411676563126"><ele>229.0</ele></trkpt><trkpt lat="34.5164386687876" lon="-92.87377623841166"><ele>226.0</ele></trkpt><trkpt lat="34.516687501231694" lon="-92.8732823766768"><ele>223.09</ele></trkpt><trkpt lat="34.51698152348399" lon="-92.87296981550753"><ele>225.0</ele></trkpt><trkpt lat="34.51777118258178" lon="-92.87195024080575"><ele>220.0</ele></trkpt><trkpt lat="34.51826244590763" lon="-92.87187142983032"><ele>222.0</ele></trkpt></trkseg></trk><trk><name>Tony's Road</name><trkseg><trkpt lat="34.51939358662317" lon="-92.87588472441541"><ele>180.0</ele></trkpt><trkpt lat="34.51908244751394" lon="-92.87581061013043"><ele>184.0</ele></trkpt><trkpt lat="34.518763264641166" lon="-92.87571321241558"><ele>192.0</ele></trkpt><trkpt lat="34.518365543335676" lon="-92.87562084384263"><ele>199.0</ele></trkpt><trkpt lat="34.51791585423052" lon="-92.87535010837018"><ele>207.5</ele></trkpt><trkpt lat="34.51746080070734" lon="-92.8752074483782"><ele>217.82</ele></trkpt><trkpt lat="34.516969537362456" lon="-92.87513880059123"><ele>226.0</ele></trkpt><trkpt lat="34.51649369671941" lon="-92.87480779923499"><ele>227.0</ele></trkpt><trkpt lat="34.51624006032944" lon="-92.87445056252182"><ele>230.0</ele></trkpt><trkpt lat="34.51617475149845" lon="-92.87411676563126"><ele>229.0</ele></trkpt><trkpt lat="34.51590637676418" lon="-92.87393306382"><ele>223.0</ele></trkpt><trkpt lat="34.51552676036954" lon="-92.87360558286309"><ele>214.0</ele></trkpt><trkpt lat="34.515028204768896" lon="-92.87347180768847"><ele>208.0</ele></trkpt><trkpt lat="34.514468935129315" lon="-92.87346661728625"><ele>211.0</ele></trkpt></trkseg></trk><trk><name>Bear Den Road</name><trkseg><trkpt lat="34.516351510202384" lon="-92.87177965431316"><ele>198.0</ele></trkpt><trkpt lat="34.51611869037151" lon="-92.87136820144951"><ele>200.7</ele></trkpt><trkpt lat="34.515679562464356" lon="-92.87136451341212"><ele>206.42</ele></trkpt><trkpt lat="34.51525895856321" lon="-92.87120676599443"><ele>214.0</ele></trkpt><trkpt lat="34.5148656796664" lon="-92.87094919010997"><ele>226.82</ele></trkpt><trkpt lat="34.51446351595223" lon="-92.87047812715173"><ele>244.67</ele></trkpt><trkpt lat="34.51406520791352" lon="-92.86997026763856"><ele>257.0</ele></trkpt><trkpt lat="34.51368810608983" lon="-92.86962174810469"><ele>267.0</ele></trkpt><trkpt lat="34.513187538832426" lon="-92.86964907310903"><ele>268.16</ele></trkpt><trkpt lat="34.51289165765047" lon="-92.86917524412274"><ele>274.0</ele></trkpt><trkpt lat="34.51278358967955" lon="-92.86897941915579"><ele>274.75</ele></trkpt></trkseg></trk></gpx></script>
 
     <!-- ===================================================================== -->
     <!-- MAIN APPLICATION ENGINE                                               -->
     <!-- ===================================================================== -->
     <script>
       // =========================================================================
-      // 1. GLOBAL STATE & HIGH-VISIBILITY ALPINE PALETTE CONFIGURATION
+      // 1. GLOBAL STATE, DEFAULT ORIENTATION & PALETTE CONFIGURATION
       // =========================================================================
       const METERS_TO_FEET = 3.28084;
       const METERS_TO_MILES = 0.000621371;
+
+      const DEFAULT_VIEW = {
+        theta: Math.PI, // South pointing upward
+        phi: 0.88,
+        radius: 315,
+        bearing: 180,
+        pitch: 58
+      };
 
       const TIER_CONFIG = {
         main: {
@@ -393,10 +494,9 @@
         renderMode: 'diorama', // 'diorama' | 'satellite'
         surfaceStyle: 'hybrid', // 'hybrid' | 'topo'
         exaggeration: 1.8,
-        layers: { main: true, secondary: true, waypoints: true },
+        layers: { main: true, secondary: true, waypoints: true, roadLabels: true },
         gpxData: null,
         selectedItem: null,
-        hoveredMesh: null,
         isRealDataLoaded: false
       };
 
@@ -417,6 +517,7 @@
 
       function getWaypointCategory(name) {
         const lower = (name || '').toLowerCase();
+        if (lower.includes('bear')) return 'bear';
         if (lower.includes('gate')) return 'gate';
         if (lower === 'shop' || lower.includes('cabin') || lower.includes('camp')) return 'shop';
         if (lower.includes('stand') || lower.includes('dollhouse')) return 'stand';
@@ -424,6 +525,9 @@
       }
 
       function getWaypointBadgeSVG(category) {
+        if (category === 'bear') {
+          return `<svg class="w-3.5 h-3.5 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="currentColor"><circle cx="6.2" cy="6.2" r="2.7"/><circle cx="17.8" cy="6.2" r="2.7"/><path d="M12 4.5c-4.4 0-7.8 3.2-7.8 7.5 0 4.5 3.3 7.8 7.8 7.8s7.8-3.3 7.8-7.8c0-4.3-3.4-7.5-7.8-7.5zm-2.8 6.3a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm5.6 0a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm-2.8 6.4c-1.8 0-3.1-1.1-3.1-2.5 0-1.3 1.3-2.3 3.1-2.3s3.1 1 3.1 2.3c0 1.4-1.3 2.5-3.1 2.5z"/></svg>`;
+        }
         if (category === 'stand') {
           return `<svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14l-1.5 6h-11z"/><path d="M7.5 10L5 21"/><path d="M16.5 10L19 21"/><path d="M6.3 15.5h11.4"/><path d="M9.5 6.5h5"/></svg>`;
         }
@@ -431,7 +535,7 @@
           return `<svg class="w-3.5 h-3.5 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16"/><path d="M4 8h16v3H4z"/><path d="M4 15l6-4"/></svg>`;
         }
         if (category === 'shop') {
-          return `<svg class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-6h5v6"/></svg>`;
+          return `<svg class="w-3.5 h-3.5 text-slate-100 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13L12 3.5 21.5 13"/><path d="M6 9.8V20h12V9.8"/><path d="M9.5 20v-5.5h5V20"/></svg>`;
         }
         return `<span class="w-2 h-2 rounded-full bg-sky-400 inline-block shrink-0"></span>`;
       }
@@ -563,11 +667,48 @@
         };
       }
 
+      function handleGPXFileUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async e => {
+          try {
+            const parsed = parseGPXString(e.target.result);
+            state.gpxData = parsed;
+            state.selectedItem = null;
+            state.isRealDataLoaded = false;
+            window._cachedSatelliteCanvas = null;
+
+            const totalMiles = parsed.tracks
+              .reduce((sum, t) => sum + (t.totalDist || 0) * METERS_TO_MILES, 0)
+              .toFixed(2);
+            document.getElementById('map-title').textContent = parsed.title;
+            document.getElementById('map-subtitle').textContent =
+              `${parsed.tracks.length} Tracks • ${parsed.waypoints.length} Stands & Gates • ${totalMiles} mi`;
+            const wptSub = document.getElementById('wpt-layer-subtitle');
+            if (wptSub) wptSub.textContent = `${parsed.waypoints.length} Waypoints & Labels`;
+
+            document.getElementById('inspector-drawer').classList.add('hidden');
+            populateDropdown();
+            await buildTerrainFromGPX(parsed);
+            if (maplibreMap) syncMapLibreData();
+          } catch (err) {
+            console.error('GPX load error:', err);
+            setStatusBadge('Invalid GPX', 'bg-rose-500/20 text-rose-300 border-rose-400/30');
+          } finally {
+            event.target.value = '';
+          }
+        };
+        reader.readAsText(file);
+      }
+
       // =========================================================================
       // 3. THREE.JS 3D RELIEF DIORAMA ENGINE
       // =========================================================================
       let scene, camera, renderer, dioramaGroup, terrainMesh, skirtMesh, basePlinthMesh;
       let roadMeshes = [];
+      let routeLabelMesh = null;
+      let routeLabelTexture = null;
       let waypointMeshes = [];
       let scrubMarkerMesh = null;
       let raycaster = null;
@@ -580,11 +721,13 @@
       let blockDepth = BLOCK_SIZE;
       let metersPerWorldUnit = 13.5;
       let activeTexture = null;
+      let autoRotate = false;
+      let lastLabelOrientQuadrant = null;
 
       const orbit = {
-        theta: -0.42,
-        phi: 0.88,
-        radius: 315,
+        theta: DEFAULT_VIEW.theta,
+        phi: DEFAULT_VIEW.phi,
+        radius: DEFAULT_VIEW.radius,
         target: null,
         isDragging: false,
         dragMode: 'rotate',
@@ -625,170 +768,37 @@
         camera.position.y = orbit.target.y + orbit.radius * Math.cos(orbit.phi);
         camera.position.z = orbit.target.z + orbit.radius * sinPhi * Math.cos(orbit.theta);
         camera.lookAt(orbit.target);
+        syncCompassRotation();
+
+        // Refresh road label orientation when viewer rotates across a 45-degree sector
+        const sector = Math.round(orbit.theta / (Math.PI / 4));
+        if (lastLabelOrientQuadrant !== null && sector !== lastLabelOrientQuadrant && state.gpxData) {
+          lastLabelOrientQuadrant = sector;
+          updateRouteLabelOverlay();
+        } else if (lastLabelOrientQuadrant === null) {
+          lastLabelOrientQuadrant = sector;
+        }
       }
 
-      function initThreeEngine() {
-        raycaster = new THREE.Raycaster();
-        pointer = new THREE.Vector2();
-        orbit.target = new THREE.Vector3(0, 12, 0);
-
-        const container = document.getElementById('three-container');
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0b0f0d);
-        scene.fog = new THREE.FogExp2(0x0b0f0d, 0.00115);
-
-        camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 1, 2000);
-        updateCameraFromOrbit();
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
-        container.appendChild(renderer.domElement);
-
-        // Studio + Warm Sunlight Rig
-        scene.add(new THREE.AmbientLight(0xdbeafe, 0.52));
-
-        const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.32);
-        sunLight.position.set(170, 260, 140);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048;
-        sunLight.shadow.mapSize.height = 2048;
-        sunLight.shadow.camera.near = 40;
-        sunLight.shadow.camera.far = 700;
-        const d = 180;
-        sunLight.shadow.camera.left = -d;
-        sunLight.shadow.camera.right = d;
-        sunLight.shadow.camera.top = d;
-        sunLight.shadow.camera.bottom = -d;
-        sunLight.shadow.bias = -0.0005;
-        scene.add(sunLight);
-
-        const rimLight = new THREE.DirectionalLight(0x34d399, 0.35);
-        rimLight.position.set(-180, 120, -160);
-        scene.add(rimLight);
-
-        // Studio Floor
-        const floorGeo = new THREE.PlaneGeometry(1800, 1800);
-        const floorMat = new THREE.MeshStandardMaterial({
-          color: 0x090d0b,
-          roughness: 0.92,
-          metalness: 0.05
-        });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -24;
-        floor.receiveShadow = true;
-        scene.add(floor);
-
-        dioramaGroup = new THREE.Group();
-        scene.add(dioramaGroup);
-
-        // Elevation Scrubber Sphere
-        const scrubGeo = new THREE.SphereGeometry(1.8, 16, 16);
-        const scrubMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
-        scrubMarkerMesh = new THREE.Mesh(scrubGeo, scrubMat);
-        scrubMarkerMesh.visible = false;
-        dioramaGroup.add(scrubMarkerMesh);
-
-        setupOrbitControls(renderer.domElement);
-
-        window.addEventListener('resize', () => {
-          if (!renderer || !camera) return;
-          camera.aspect = container.clientWidth / container.clientHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(container.clientWidth, container.clientHeight);
-          if (state.selectedItem && state.selectedItem.type === 'track') {
-            drawElevationChart(state.selectedItem.data);
-          }
-        });
-      }
-
-      let autoRotate = false;
-      function toggleAutoRotate() {
-        autoRotate = !autoRotate;
-        const btn = document.getElementById('btn-auto-rotate');
-        btn.textContent = autoRotate ? 'Spin: On' : 'Spin: Off';
-        btn.classList.toggle('text-emerald-400', autoRotate);
-      }
-
-      function setupOrbitControls(domElement) {
-        domElement.addEventListener('contextmenu', e => e.preventDefault());
-
-        domElement.addEventListener('pointerdown', e => {
-          orbit.isDragging = true;
-          orbit.prevX = e.clientX;
-          orbit.prevY = e.clientY;
-          orbit.downX = e.clientX;
-          orbit.downY = e.clientY;
-          orbit.dragMode = e.button === 2 || e.shiftKey ? 'pan' : 'rotate';
-          domElement.setPointerCapture(e.pointerId);
-        });
-
-        domElement.addEventListener('pointermove', e => {
-          if (!orbit.isDragging) {
-            handleHoverRaycast(e);
-            return;
-          }
-          const dx = e.clientX - orbit.prevX;
-          const dy = e.clientY - orbit.prevY;
-          orbit.prevX = e.clientX;
-          orbit.prevY = e.clientY;
-
-          if (orbit.dragMode === 'rotate') {
-            orbit.theta -= dx * 0.0065;
-            orbit.phi -= dy * 0.0065;
-          } else {
-            const panSpeed = orbit.radius * 0.0012;
-            const rightX = Math.cos(orbit.theta);
-            const rightZ = -Math.sin(orbit.theta);
-            orbit.target.x -= dx * panSpeed * rightX;
-            orbit.target.z -= dx * panSpeed * rightZ;
-            orbit.target.x += dy * panSpeed * Math.sin(orbit.theta);
-            orbit.target.z += dy * panSpeed * Math.cos(orbit.theta);
-          }
-          updateCameraFromOrbit();
-        });
-
-        domElement.addEventListener('pointerup', e => {
-          orbit.isDragging = false;
-          try { domElement.releasePointerCapture(e.pointerId); } catch (_) {}
-          const dist = Math.hypot(e.clientX - orbit.downX, e.clientY - orbit.downY);
-          if (dist < 5) {
-            handleClickRaycast(e);
-          }
-        });
-
-        domElement.addEventListener(
-          'wheel',
-          e => {
-            e.preventDefault();
-            orbit.radius += e.deltaY * 0.22;
-            updateCameraFromOrbit();
-          },
-          { passive: false }
-        );
-      }
-
-      function handleHoverRaycast(e) {
-        if (!terrainMesh || !raycaster) return;
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-
-        const targets = [
-          ...roadMeshes.filter(m => m.visible),
-          ...waypointMeshes.filter(m => m.visible)
-        ];
-        const hits = raycaster.intersectObjects(targets, true);
-        if (hits.length > 0) {
-          renderer.domElement.style.cursor = 'pointer';
+      function syncCompassRotation() {
+        const dial = document.getElementById('compass-dial');
+        if (!dial) return;
+        let bearingDeg = 0;
+        if (state.renderMode === 'satellite' && maplibreMap) {
+          bearingDeg = maplibreMap.getBearing() || 0;
         } else {
-          renderer.domElement.style.cursor = orbit.isDragging ? 'grabbing' : 'grab';
+          bearingDeg = (orbit.theta * 180) / Math.PI;
+        }
+        dial.style.transform = `rotate(${(-bearingDeg).toFixed(1)}deg)`;
+      }
+
+      function alignMapNorth() {
+        if (state.renderMode === 'satellite' && maplibreMap) {
+          maplibreMap.easeTo({ bearing: 0, pitch: 52, duration: 600 });
+        } else {
+          orbit.theta = 0;
+          updateCameraFromOrbit();
+          updateRouteLabelOverlay();
         }
       }
 
@@ -819,8 +829,133 @@
         }
       }
 
+      function initThreeEngine() {
+        const container = document.getElementById('three-container');
+        if (!container || typeof THREE === 'undefined') return;
+
+        raycaster = new THREE.Raycaster();
+        pointer = new THREE.Vector2();
+        orbit.target = new THREE.Vector3(0, 12, 0);
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0f0d);
+        scene.fog = new THREE.FogExp2(0x0b0f0d, 0.0014);
+
+        const width = container.clientWidth || window.innerWidth;
+        const height = container.clientHeight || window.innerHeight;
+        camera = new THREE.PerspectiveCamera(42, width / Math.max(height, 1), 0.5, 1600);
+        updateCameraFromOrbit();
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+
+        container.innerHTML = '';
+        container.appendChild(renderer.domElement);
+
+        const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 0.95);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.55);
+        dirLight.position.set(140, 210, 120);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 20;
+        dirLight.shadow.camera.far = 650;
+        const d = 165;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.bias = -0.0005;
+        scene.add(dirLight);
+
+        const rimLight = new THREE.DirectionalLight(0x34d399, 0.45);
+        rimLight.position.set(-150, 90, -130);
+        scene.add(rimLight);
+
+        dioramaGroup = new THREE.Group();
+        scene.add(dioramaGroup);
+
+        const scrubGeo = new THREE.SphereGeometry(1.5, 16, 16);
+        const scrubMat = new THREE.MeshBasicMaterial({ color: 0x34d399, toneMapped: false });
+        scrubMarkerMesh = new THREE.Mesh(scrubGeo, scrubMat);
+        scrubMarkerMesh.visible = false;
+        scene.add(scrubMarkerMesh);
+
+        const dom = renderer.domElement;
+        dom.addEventListener('pointerdown', e => {
+          orbit.isDragging = true;
+          orbit.dragMode = e.button === 2 || e.shiftKey ? 'pan' : 'rotate';
+          orbit.prevX = e.clientX;
+          orbit.prevY = e.clientY;
+          orbit.downX = e.clientX;
+          orbit.downY = e.clientY;
+        });
+
+        window.addEventListener('pointermove', e => {
+          if (!orbit.isDragging || !orbit.target) return;
+          const dx = e.clientX - orbit.prevX;
+          const dy = e.clientY - orbit.prevY;
+          orbit.prevX = e.clientX;
+          orbit.prevY = e.clientY;
+
+          if (orbit.dragMode === 'rotate') {
+            orbit.theta -= dx * 0.007;
+            orbit.phi -= dy * 0.0065;
+          } else {
+            const right = new THREE.Vector3();
+            camera.getWorldDirection(right);
+            right.cross(camera.up).normalize();
+            const panScale = orbit.radius * 0.0014;
+            orbit.target.addScaledVector(right, -dx * panScale);
+            orbit.target.y += dy * panScale * 0.85;
+          }
+          updateCameraFromOrbit();
+        });
+
+        window.addEventListener('pointerup', e => {
+          if (!orbit.isDragging) return;
+          const moved = Math.hypot(e.clientX - orbit.downX, e.clientY - orbit.downY);
+          orbit.isDragging = false;
+          if (moved < 5 && state.renderMode === 'diorama') {
+            handleClickRaycast(e);
+          }
+        });
+
+        dom.addEventListener(
+          'wheel',
+          e => {
+            e.preventDefault();
+            orbit.radius *= e.deltaY > 0 ? 1.09 : 0.91;
+            updateCameraFromOrbit();
+          },
+          { passive: false }
+        );
+
+        dom.addEventListener('contextmenu', e => e.preventDefault());
+
+        window.addEventListener('resize', () => {
+          if (!renderer || !camera) return;
+          const w = container.clientWidth || window.innerWidth;
+          const h = container.clientHeight || window.innerHeight;
+          camera.aspect = w / Math.max(h, 1);
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h);
+          if (state.selectedItem && state.selectedItem.type === 'track') {
+            drawElevationChart(state.selectedItem.data);
+          }
+          updateWaypointScreenLabels();
+        });
+      }
+
       // =========================================================================
-      // 4. REAL-WORLD DEM + SATELLITE TILE FETCHER (WITH PROCEDURAL FALLBACK)
+      // 4. REAL-WORLD DEM + SATELLITE TILE FETCHER & TEXTURE GENERATORS
       // =========================================================================
       function lon2tile(lon, zoom) {
         return ((lon + 180) / 360) * Math.pow(2, zoom);
@@ -859,15 +994,14 @@
         }
         metersPerWorldUnit = Math.max(lonMeters, latMeters) / BLOCK_SIZE;
 
-        // First synthesize immediate IDW + multi-octave ridge terrain from GPX tracks so 3D renders instantly
         synthesizeProceduralElevation(gpxData);
         const fallbackCanvas = generateProceduralTextureCanvas(gpxData, state.surfaceStyle);
+        if (activeTexture) activeTexture.dispose();
         activeTexture = new THREE.CanvasTexture(fallbackCanvas);
         activeTexture.anisotropy = 4;
 
         rebuildDioramaMesh();
 
-        // Attempt live AWS Terrarium DEM + ESRI World Imagery upgrade in background
         try {
           const zoom = 14;
           const xMinF = lon2tile(minLon, zoom);
@@ -903,12 +1037,8 @@
                 const demUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${zoom}/${tx}/${ty}.png`;
                 const satUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${ty}/${tx}`;
 
-                jobs.push(
-                  loadImageCORS(demUrl).then(img => demCtx.drawImage(img, dx, dy))
-                );
-                jobs.push(
-                  loadImageCORS(satUrl).then(img => satCtx.drawImage(img, dx, dy))
-                );
+                jobs.push(loadImageCORS(demUrl).then(img => demCtx.drawImage(img, dx, dy)));
+                jobs.push(loadImageCORS(satUrl).then(img => satCtx.drawImage(img, dx, dy)));
               }
             }
 
@@ -923,7 +1053,6 @@
             };
 
             const rawGrid = new Float32Array((GRID_RES + 1) * (GRID_RES + 1));
-
             for (let iz = 0; iz <= GRID_RES; iz++) {
               const v = iz / GRID_RES;
               const lat = maxLat - v * (maxLat - minLat);
@@ -940,18 +1069,15 @@
                 const px0 = Math.floor(pxF);
                 const fx = pxF - px0;
 
-                // Bilinear interpolation across DEM texels for smooth slopes
                 const h00 = sampleDemPixel(px0, py0);
                 const h10 = sampleDemPixel(px0 + 1, py0);
                 const h01 = sampleDemPixel(px0, py0 + 1);
                 const h11 = sampleDemPixel(px0 + 1, py0 + 1);
                 const ele = (h00 * (1 - fx) + h10 * fx) * (1 - fy) + (h01 * (1 - fx) + h11 * fx) * fy;
-
                 rawGrid[iz * (GRID_RES + 1) + ix] = ele;
               }
             }
 
-            // Light 3x3 Gaussian smoothing pass to eliminate DEM quantization ridges
             let fetchedMin = Infinity;
             let fetchedMax = -Infinity;
             for (let iz = 0; iz <= GRID_RES; iz++) {
@@ -979,10 +1105,9 @@
               gpxData.bounds.maxEle = fetchedMax;
               state.isRealDataLoaded = true;
 
-              // Crop exact satellite bounds onto high-res texture canvas
               const cropCanvas = document.createElement('canvas');
               cropCanvas.width = 1024;
-              cropCanvas.height = Math.round(1024 / aspect);
+              cropCanvas.height = Math.max(256, Math.round(1024 / aspect));
               const cropCtx = cropCanvas.getContext('2d');
 
               const sx = (xMinF - x0) * tileSize;
@@ -991,10 +1116,7 @@
               const sh = (yMaxF - yMinF) * tileSize;
               cropCtx.drawImage(satCanvas, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
 
-              // Subtle topo contour overlay when in hybrid mode
-              if (state.surfaceStyle === 'hybrid') {
-                drawContourLinesOnCanvas(cropCtx, cropCanvas.width, cropCanvas.height, gpxData, 0.22);
-              }
+              drawContourLinesOnCanvas(cropCtx, cropCanvas.width, cropCanvas.height, gpxData, 0.24, false);
 
               window._cachedSatelliteCanvas = cropCanvas;
               updateSurfaceTexture();
@@ -1003,7 +1125,6 @@
             }
           }
         } catch (err) {
-          // Offline / CORS-restricted environment seamlessly keeps the synthesized GPX terrain
           setStatusBadge('GPX 3D Relief', 'bg-amber-500/20 text-amber-300 border-amber-400/30');
         }
       }
@@ -1035,7 +1156,6 @@
               den += w;
             }
             const baseEle = den > 0 ? num / den : 210;
-            // Ouachita-style folded ridge modulation
             const ridge =
               Math.sin(u * 13.5 + v * 6.2) * 5.5 +
               Math.cos(u * 7.0 - v * 11.0) * 4.2 +
@@ -1079,22 +1199,18 @@
             const ele = (e00 * (1 - fx) + e10 * fx) * (1 - fz) + (e01 * (1 - fx) + e11 * fx) * fz;
             const t = Math.max(0, Math.min(1, (ele - minEle) / eleSpan));
 
-            // Slope shading
             const dx = e10 - e00;
             const dz = e01 - e00;
             const shade = Math.max(-0.2, Math.min(0.2, (-dx - dz) * 0.025));
-
-            // Canopy grain noise
             const grain = (Math.sin(x * 0.43 + y * 0.29) * Math.cos(x * 0.21 - y * 0.51)) * 7;
 
             let r, g, b;
             if (style === 'topo') {
-              // Hypsometric forest-to-ridge palette
-              r = 46 + t * 92 + shade * 60 + grain * 0.5;
-              g = 94 + t * 76 + shade * 64 + grain * 0.6;
-              b = 50 + t * 32 + shade * 40 + grain * 0.4;
+              // Classic cream / warm tan USGS topographic map paper with subtle hillshade
+              r = 242 - t * 14 + shade * 45 + grain * 0.25;
+              g = 236 - t * 16 + shade * 45 + grain * 0.25;
+              b = 218 - t * 22 + shade * 40 + grain * 0.2;
             } else {
-              // Natural pine/hardwood forest canopy simulation
               r = 34 + t * 34 + shade * 50 + grain;
               g = 74 + t * 44 + shade * 60 + grain * 1.1;
               b = 34 + t * 18 + shade * 35 + grain * 0.7;
@@ -1109,60 +1225,456 @@
         }
         ctx.putImageData(imgData, 0, 0);
 
-        // Add subtle clearing near Broken Leg Trail (southwest)
-        if (style === 'hybrid') {
-          const cx = w * 0.22;
-          const cy = h * 0.76;
-          const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 42);
-          grad.addColorStop(0, 'rgba(194, 178, 146, 0.72)');
-          grad.addColorStop(0.55, 'rgba(163, 152, 118, 0.35)');
-          grad.addColorStop(1, 'rgba(163, 152, 118, 0)');
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.ellipse(cx, cy, 44, 22, -0.25, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        drawContourLinesOnCanvas(ctx, w, h, gpxData, style === 'topo' ? 0.38 : 0.2);
+        drawContourLinesOnCanvas(
+          ctx,
+          w,
+          h,
+          gpxData,
+          style === 'topo' ? 0.68 : 0.22,
+          style === 'topo'
+        );
         return canvas;
       }
 
-      function drawContourLinesOnCanvas(ctx, w, h, gpxData, alpha) {
+      // Smooth marching-squares contour line renderer
+      function drawContourLinesOnCanvas(ctx, w, h, gpxData, alpha, isClassicTopo = false) {
         const { minEle, maxEle } = gpxData.bounds;
-        const interval = 6; // 6-meter contour steps
-        ctx.lineWidth = 1;
+        const interval = isClassicTopo ? 4 : 6;
+        const cellW = w / GRID_RES;
+        const cellH = h / GRID_RES;
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
 
         for (let level = Math.ceil(minEle / interval) * interval; level < maxEle; level += interval) {
           const isMajor = Math.round(level) % (interval * 5) === 0;
-          ctx.strokeStyle = isMajor
-            ? `rgba(255, 250, 235, ${alpha * 1.55})`
-            : `rgba(255, 250, 235, ${alpha * 0.75})`;
-          ctx.lineWidth = isMajor ? 1.3 : 0.7;
+          if (isClassicTopo) {
+            ctx.strokeStyle = isMajor
+              ? `rgba(120, 66, 26, ${Math.min(1, alpha * 1.25)})`
+              : `rgba(154, 96, 48, ${alpha * 0.62})`;
+            ctx.lineWidth = isMajor ? 1.55 : 0.85;
+          } else {
+            ctx.strokeStyle = isMajor
+              ? `rgba(255, 250, 235, ${alpha * 1.55})`
+              : `rgba(255, 250, 235, ${alpha * 0.75})`;
+            ctx.lineWidth = isMajor ? 1.3 : 0.7;
+          }
 
           ctx.beginPath();
           for (let iz = 0; iz < GRID_RES; iz++) {
+            const row0 = iz * (GRID_RES + 1);
+            const row1 = (iz + 1) * (GRID_RES + 1);
             for (let ix = 0; ix < GRID_RES; ix++) {
-              const e00 = elevationGrid[iz * (GRID_RES + 1) + ix];
-              const e10 = elevationGrid[iz * (GRID_RES + 1) + (ix + 1)];
-              const e01 = elevationGrid[(iz + 1) * (GRID_RES + 1) + ix];
-              if ((e00 < level && e10 >= level) || (e00 >= level && e10 < level)) {
-                const t = (level - e00) / (e10 - e00);
-                const px = ((ix + t) / GRID_RES) * w;
-                const py = (iz / GRID_RES) * h;
-                ctx.moveTo(px, py);
-                ctx.lineTo(px + 1.5, py + (e01 > e00 ? 1.5 : -1.5));
+              const e00 = elevationGrid[row0 + ix];
+              const e10 = elevationGrid[row0 + ix + 1];
+              const e11 = elevationGrid[row1 + ix + 1];
+              const e01 = elevationGrid[row1 + ix];
+
+              let mask = 0;
+              if (e00 >= level) mask |= 1;
+              if (e10 >= level) mask |= 2;
+              if (e11 >= level) mask |= 4;
+              if (e01 >= level) mask |= 8;
+              if (mask === 0 || mask === 15) continue;
+
+              const interp = (a, b) => {
+                const d = b - a;
+                return Math.abs(d) < 1e-6 ? 0.5 : (level - a) / d;
+              };
+
+              const top = { x: (ix + interp(e00, e10)) * cellW, y: iz * cellH };
+              const right = { x: (ix + 1) * cellW, y: (iz + interp(e10, e11)) * cellH };
+              const bottom = { x: (ix + interp(e01, e11)) * cellW, y: (iz + 1) * cellH };
+              const left = { x: ix * cellW, y: (iz + interp(e00, e01)) * cellH };
+
+              const addSeg = (p1, p2) => {
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+              };
+
+              switch (mask) {
+                case 1:
+                case 14:
+                  addSeg(left, top);
+                  break;
+                case 2:
+                case 13:
+                  addSeg(top, right);
+                  break;
+                case 3:
+                case 12:
+                  addSeg(left, right);
+                  break;
+                case 4:
+                case 11:
+                  addSeg(right, bottom);
+                  break;
+                case 5:
+                  addSeg(left, top);
+                  addSeg(right, bottom);
+                  break;
+                case 6:
+                case 9:
+                  addSeg(top, bottom);
+                  break;
+                case 7:
+                case 8:
+                  addSeg(left, bottom);
+                  break;
+                case 10:
+                  addSeg(top, right);
+                  addSeg(left, bottom);
+                  break;
               }
             }
           }
           ctx.stroke();
         }
+        ctx.restore();
+      }
+
+      // =========================================================================
+      // 5. ORIENTATION-AWARE PARALLEL ROUTE LABELS
+      // =========================================================================
+      function drawRouteLabelsOnSurfaceCanvas(ctx, w, h, gpxData) {
+        if (!state.layers.roadLabels || !gpxData || !gpxData.tracks) return;
+        const { minLat, maxLat, minLon, maxLon } = gpxData.bounds;
+        const lonSpan = Math.max(maxLon - minLon, 1e-6);
+        const latSpan = Math.max(maxLat - minLat, 1e-6);
+
+        // Screen-right unit vector in texture/world-XZ coordinates based on active camera yaw
+        const yaw = state.renderMode === 'satellite' && maplibreMap
+          ? ((maplibreMap.getBearing() || 0) * Math.PI) / 180
+          : orbit.theta;
+        const screenRightX = Math.cos(yaw);
+        const screenRightY = -Math.sin(yaw);
+
+        const toCanvas = pt => ({
+          x: ((pt.lon - minLon) / lonSpan) * w,
+          y: ((maxLat - pt.lat) / latSpan) * h
+        });
+
+        const buildArcPolyline = points => {
+          const raw = points.map(toCanvas);
+          const cleaned = [raw[0]];
+          for (let i = 1; i < raw.length; i++) {
+            const d = Math.hypot(raw[i].x - cleaned[cleaned.length - 1].x, raw[i].y - cleaned[cleaned.length - 1].y);
+            if (d > 2.0) cleaned.push(raw[i]);
+          }
+          if (cleaned.length < 2) return null;
+
+          const dense = [cleaned[0]];
+          for (let i = 1; i < cleaned.length; i++) {
+            const a = cleaned[i - 1];
+            const b = cleaned[i];
+            const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+            const steps = Math.max(1, Math.ceil(segLen / 4));
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps;
+              dense.push({
+                x: a.x + (b.x - a.x) * t,
+                y: a.y + (b.y - a.y) * t
+              });
+            }
+          }
+
+          // Project overall start->end onto the viewer's screen-right axis so labels read left-to-right
+          const chordDx = dense[dense.length - 1].x - dense[0].x;
+          const chordDy = dense[dense.length - 1].y - dense[0].y;
+          const screenDot = chordDx * screenRightX + chordDy * screenRightY;
+          if (screenDot < 0) {
+            dense.reverse();
+          }
+
+          const smoothFrames = dense.map((pt, idx) => {
+            const i0 = Math.max(0, idx - 3);
+            const i1 = Math.min(dense.length - 1, idx + 3);
+            let dx = dense[i1].x - dense[i0].x;
+            let dy = dense[i1].y - dense[i0].y;
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+            return { x: pt.x, y: pt.y, dx, dy };
+          });
+
+          const cum = [0];
+          for (let i = 1; i < smoothFrames.length; i++) {
+            cum.push(
+              cum[i - 1] +
+                Math.hypot(smoothFrames[i].x - smoothFrames[i - 1].x, smoothFrames[i].y - smoothFrames[i - 1].y)
+            );
+          }
+          const totalLen = cum[cum.length - 1];
+          if (totalLen < 18) return null;
+
+          const sampleCenterAt = dist => {
+            const clamped = Math.max(0, Math.min(totalLen, dist));
+            let idx = 1;
+            while (idx < cum.length - 1 && cum[idx] < clamped) idx++;
+            const s0 = cum[idx - 1];
+            const s1 = cum[idx];
+            const t = s1 > s0 ? (clamped - s0) / (s1 - s0) : 0;
+
+            const f0 = smoothFrames[idx - 1];
+            const f1 = smoothFrames[idx];
+            const x = f0.x + (f1.x - f0.x) * t;
+            const y = f0.y + (f1.y - f0.y) * t;
+
+            let dx = f0.dx * (1 - t) + f1.dx * t;
+            let dy = f0.dy * (1 - t) + f1.dy * t;
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+
+            const angle = Math.atan2(dy, dx);
+            const nx = -dy;
+            const ny = dx;
+            return { x, y, angle, nx, ny };
+          };
+
+          const buildOffsetCurve = (centerFrac, spanWidth, clearance, sign) => {
+            const halfSpan = Math.max(spanWidth * 0.65, 24);
+            const startCenter = Math.max(0, Math.min(totalLen, totalLen * centerFrac - halfSpan));
+            const endCenter = Math.max(startCenter + 4, Math.min(totalLen, totalLen * centerFrac + halfSpan));
+
+            const sampleCount = 48;
+            const offsetPts = [];
+            const offsetCum = [0];
+
+            for (let k = 0; k <= sampleCount; k++) {
+              const u = k / sampleCount;
+              const cPt = sampleCenterAt(startCenter + u * (endCenter - startCenter));
+              const ox = cPt.x + cPt.nx * clearance * sign;
+              const oy = cPt.y + cPt.ny * clearance * sign;
+              offsetPts.push({
+                x: ox,
+                y: oy,
+                cx: cPt.x,
+                cy: cPt.y,
+                angle: cPt.angle
+              });
+              if (k > 0) {
+                const prev = offsetPts[k - 1];
+                offsetCum.push(offsetCum[k - 1] + Math.hypot(ox - prev.x, oy - prev.y));
+              }
+            }
+
+            const offsetLen = offsetCum[offsetCum.length - 1];
+            const sampleOffsetAt = oDist => {
+              const clamped = Math.max(0, Math.min(offsetLen, oDist));
+              let idx = 1;
+              while (idx < offsetCum.length - 1 && offsetCum[idx] < clamped) idx++;
+              const d0 = offsetCum[idx - 1];
+              const d1 = offsetCum[idx];
+              const t = d1 > d0 ? (clamped - d0) / (d1 - d0) : 0;
+              const p0 = offsetPts[idx - 1];
+              const p1 = offsetPts[idx];
+
+              const ax = Math.cos(p0.angle) * (1 - t) + Math.cos(p1.angle) * t;
+              const ay = Math.sin(p0.angle) * (1 - t) + Math.sin(p1.angle) * t;
+              return {
+                x: p0.x + (p1.x - p0.x) * t,
+                y: p0.y + (p1.y - p0.y) * t,
+                cx: p0.cx + (p1.cx - p0.cx) * t,
+                cy: p0.cy + (p1.cy - p0.cy) * t,
+                angle: Math.atan2(ay, ax)
+              };
+            };
+
+            return { offsetLen, sampleOffsetAt };
+          };
+
+          return { totalLen, buildOffsetCurve };
+        };
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        const placedBoxes = [];
+
+        gpxData.tracks.forEach((track, tIdx) => {
+          if (!state.layers[track.tier] || !track.points || track.points.length < 2) return;
+          const poly = buildArcPolyline(track.points);
+          if (!poly) return;
+
+          const cfg = TIER_CONFIG[track.tier] || TIER_CONFIG.secondary;
+          const isSelected = state.selectedItem?.type === 'track' && state.selectedItem.data.id === track.id;
+
+          const fontSize = isSelected ? 12 : 10;
+          ctx.font = `${isSelected ? 700 : 600} ${fontSize}px Inter, -apple-system, sans-serif`;
+
+          const text = track.name;
+          const chars = Array.from(text);
+          if (chars.length === 0) return;
+
+          const measuredWidths = chars.map(ch => ctx.measureText(ch).width);
+          const maxCharWidth = Math.max(...measuredWidths, fontSize * 0.58);
+          const avgCharWidth = measuredWidths.reduce((a, b) => a + b, 0) / chars.length;
+
+          const charStep = Math.max(avgCharWidth * 1.28, maxCharWidth * 1.05, fontSize * 0.76);
+          const spanBetweenFirstLast = charStep * Math.max(0, chars.length - 1);
+          const textPixelWidth = spanBetweenFirstLast + maxCharWidth;
+
+          const margin = 12;
+          if (textPixelWidth + margin * 2 > poly.totalLen) return;
+
+          const tubeClearance = (isSelected ? 13.5 : 12) + fontSize * 0.45;
+          const preferredSign = tIdx % 2 === 0 ? 1 : -1;
+
+          const candidates = [0.5, 0.35, 0.65, 0.25, 0.75, 0.42, 0.58];
+          let chosenPlacement = null;
+
+          for (const frac of candidates) {
+            for (const sign of [preferredSign, -preferredSign]) {
+              const offsetCurve = poly.buildOffsetCurve(frac, textPixelWidth, tubeClearance, sign);
+              const padEnds = maxCharWidth * 0.5 + 4;
+              if (offsetCurve.offsetLen < spanBetweenFirstLast + padEnds * 2) continue;
+
+              const startODist = (offsetCurve.offsetLen - spanBetweenFirstLast) * 0.5;
+              const glyphSamples = [];
+              let valid = true;
+
+              for (let i = 0; i < chars.length; i++) {
+                const pt = offsetCurve.sampleOffsetAt(startODist + i * charStep);
+
+                if (pt.x < 12 || pt.x > w - 12 || pt.y < 12 || pt.y > h - 12) {
+                  valid = false;
+                  break;
+                }
+
+                const distToRoad = Math.hypot(pt.x - pt.cx, pt.y - pt.cy);
+                if (distToRoad < tubeClearance * 0.78) {
+                  valid = false;
+                  break;
+                }
+
+                if (glyphSamples.length > 0) {
+                  const prevGlyph = glyphSamples[glyphSamples.length - 1];
+                  if (Math.hypot(pt.x - prevGlyph.px, pt.y - prevGlyph.py) < charStep * 0.9) {
+                    valid = false;
+                    break;
+                  }
+                }
+
+                const r = charStep * 0.56;
+                for (let b = 0; b < placedBoxes.length; b++) {
+                  const box = placedBoxes[b];
+                  if (Math.hypot(pt.x - box.x, pt.y - box.y) < r + box.r + 4) {
+                    valid = false;
+                    break;
+                  }
+                }
+                if (!valid) break;
+
+                glyphSamples.push({ ch: chars[i], px: pt.x, py: pt.y, angle: pt.angle, r });
+              }
+
+              if (valid) {
+                chosenPlacement = glyphSamples;
+                break;
+              }
+            }
+            if (chosenPlacement) break;
+          }
+
+          if (!chosenPlacement) return;
+
+          chosenPlacement.forEach(g => {
+            ctx.save();
+            ctx.translate(g.px, g.py);
+            ctx.rotate(g.angle);
+
+            ctx.strokeStyle = 'rgba(7, 11, 9, 0.92)';
+            ctx.lineWidth = isSelected ? 4.0 : 3.2;
+            ctx.strokeText(g.ch, 0, 0);
+
+            ctx.fillStyle = isSelected ? '#6ee7b7' : cfg.colorHex;
+            ctx.globalAlpha = isSelected ? 1.0 : 0.96;
+            ctx.fillText(g.ch, 0, 0);
+            ctx.restore();
+
+            placedBoxes.push({ x: g.px, y: g.py, r: g.r });
+          });
+        });
+
+        ctx.restore();
+      }
+
+      function generateRouteLabelsCanvas(w, h, gpxData) {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        drawRouteLabelsOnSurfaceCanvas(ctx, w, h, gpxData);
+        return canvas;
+      }
+
+      function updateRouteLabelOverlay() {
+        if (!dioramaGroup || !state.gpxData) return;
+
+        const w = 1024;
+        const h = Math.max(256, Math.round(1024 * (blockDepth / blockWidth)));
+        const labelCanvas = generateRouteLabelsCanvas(w, h, state.gpxData);
+
+        if (routeLabelTexture) routeLabelTexture.dispose();
+        routeLabelTexture = new THREE.CanvasTexture(labelCanvas);
+        routeLabelTexture.anisotropy = 4;
+
+        if (!routeLabelMesh) {
+          const geo = new THREE.PlaneGeometry(blockWidth, blockDepth, GRID_RES, GRID_RES);
+          geo.rotateX(-Math.PI / 2);
+
+          const pos = geo.attributes.position;
+          for (let iz = 0; iz <= GRID_RES; iz++) {
+            for (let ix = 0; ix <= GRID_RES; ix++) {
+              const idx = iz * (GRID_RES + 1) + ix;
+              pos.setY(idx, eleMetersToWorldY(elevationGrid[idx]) + 2.05);
+            }
+          }
+          geo.computeVertexNormals();
+
+          const mat = new THREE.MeshBasicMaterial({
+            map: routeLabelTexture,
+            transparent: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -2
+          });
+
+          routeLabelMesh = new THREE.Mesh(geo, mat);
+          routeLabelMesh.renderOrder = 3;
+          dioramaGroup.add(routeLabelMesh);
+        } else {
+          const pos = routeLabelMesh.geometry.attributes.position;
+          for (let iz = 0; iz <= GRID_RES; iz++) {
+            for (let ix = 0; ix <= GRID_RES; ix++) {
+              const idx = iz * (GRID_RES + 1) + ix;
+              pos.setY(idx, eleMetersToWorldY(elevationGrid[idx]) + 2.05);
+            }
+          }
+          pos.needsUpdate = true;
+          routeLabelMesh.geometry.computeVertexNormals();
+          routeLabelMesh.material.map = routeLabelTexture;
+          routeLabelMesh.material.needsUpdate = true;
+        }
+
+        routeLabelMesh.visible = state.layers.roadLabels;
       }
 
       function updateSurfaceTexture() {
         if (!state.gpxData) return;
         let canvas;
         if (state.isRealDataLoaded && state.surfaceStyle === 'hybrid' && window._cachedSatelliteCanvas) {
-          canvas = window._cachedSatelliteCanvas;
+          canvas = document.createElement('canvas');
+          canvas.width = window._cachedSatelliteCanvas.width;
+          canvas.height = window._cachedSatelliteCanvas.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(window._cachedSatelliteCanvas, 0, 0);
         } else {
           canvas = generateProceduralTextureCanvas(state.gpxData, state.surfaceStyle);
         }
@@ -1173,10 +1685,11 @@
           terrainMesh.material.map = activeTexture;
           terrainMesh.material.needsUpdate = true;
         }
+        updateRouteLabelOverlay();
       }
 
       // =========================================================================
-      // 5. COORDINATE PROJECTION & 3D MESH BUILDERS
+      // 6. COORDINATE PROJECTION & 3D MESH BUILDERS
       // =========================================================================
       function latLonToWorldXZ(lat, lon) {
         const { minLat, maxLat, minLon, maxLon } = state.gpxData.bounds;
@@ -1211,7 +1724,6 @@
 
       function eleMetersToWorldY(eleMeters) {
         const { minEle } = state.gpxData.bounds;
-        // True-to-scale vertical conversion so 1.0x matches real horizontal scale
         return ((eleMeters - minEle) / Math.max(metersPerWorldUnit, 1)) * state.exaggeration;
       }
 
@@ -1230,8 +1742,12 @@
           dioramaGroup.remove(basePlinthMesh);
           basePlinthMesh.geometry.dispose();
         }
+        if (routeLabelMesh) {
+          dioramaGroup.remove(routeLabelMesh);
+          routeLabelMesh.geometry.dispose();
+          routeLabelMesh = null;
+        }
 
-        // Top Surface PlaneGeometry
         const geo = new THREE.PlaneGeometry(blockWidth, blockDepth, GRID_RES, GRID_RES);
         geo.rotateX(-Math.PI / 2);
 
@@ -1256,7 +1772,6 @@
         terrainMesh.castShadow = true;
         dioramaGroup.add(terrainMesh);
 
-        // Geological Cross-Section Skirt Walls
         const skirtBottom = -16;
         const skirtPositions = [];
         const skirtColors = [];
@@ -1276,38 +1791,32 @@
           }
         };
 
-        // North & South Edges
         for (let ix = 0; ix < GRID_RES; ix++) {
           const u0 = ix / GRID_RES;
           const u1 = (ix + 1) / GRID_RES;
           const x0 = (u0 - 0.5) * blockWidth;
           const x1 = (u1 - 0.5) * blockWidth;
 
-          // North edge (iz = 0)
           const zN = -0.5 * blockDepth;
           addQuad(x1, eleMetersToWorldY(elevationGrid[ix + 1]), zN, x0, eleMetersToWorldY(elevationGrid[ix]), zN);
 
-          // South edge (iz = GRID_RES)
           const zS = 0.5 * blockDepth;
           const rowS = GRID_RES * (GRID_RES + 1);
           addQuad(x0, eleMetersToWorldY(elevationGrid[rowS + ix]), zS, x1, eleMetersToWorldY(elevationGrid[rowS + ix + 1]), zS);
         }
 
-        // West & East Edges
         for (let iz = 0; iz < GRID_RES; iz++) {
           const v0 = iz / GRID_RES;
           const v1 = (iz + 1) / GRID_RES;
           const z0 = (v0 - 0.5) * blockDepth;
           const z1 = (v1 - 0.5) * blockDepth;
 
-          // West edge (ix = 0)
           const xW = -0.5 * blockWidth;
           addQuad(
             xW, eleMetersToWorldY(elevationGrid[iz * (GRID_RES + 1)]), z0,
             xW, eleMetersToWorldY(elevationGrid[(iz + 1) * (GRID_RES + 1)]), z1
           );
 
-          // East edge (ix = GRID_RES)
           const xE = 0.5 * blockWidth;
           addQuad(
             xE, eleMetersToWorldY(elevationGrid[(iz + 1) * (GRID_RES + 1) + GRID_RES]), z1,
@@ -1331,7 +1840,6 @@
         skirtMesh.receiveShadow = true;
         dioramaGroup.add(skirtMesh);
 
-        // Dark Studio Base Plinth
         const plinthGeo = new THREE.BoxGeometry(blockWidth + 3, 6, blockDepth + 3);
         const plinthMat = new THREE.MeshStandardMaterial({
           color: 0x111714,
@@ -1345,11 +1853,9 @@
 
         build3DRoads();
         build3DWaypoints();
+        updateRouteLabelOverlay();
       }
 
-      // =========================================================================
-      // 6. CLEAN WARM-TOPO 3D ROUTES (NO BLACK CASINGS)
-      // =========================================================================
       function build3DRoads() {
         roadMeshes.forEach(m => {
           dioramaGroup.remove(m);
@@ -1369,7 +1875,6 @@
             pts3D.push(new THREE.Vector3(x, y, z));
           });
 
-          // Deduplicate consecutive identical points
           const cleanPts = [pts3D[0]];
           for (let i = 1; i < pts3D.length; i++) {
             if (pts3D[i].distanceTo(cleanPts[cleanPts.length - 1]) > 0.2) {
@@ -1401,165 +1906,263 @@
       }
 
       // =========================================================================
-      // 7. CUSTOM 3D WAYPOINT MODELS (STAND TOWERS, ONE-SIDED SWING GATES, SHOP)
+      // 7. CUSTOM 3D STANDS, SWING GATES, TENT SHED & ORGANIC BEAR MODEL
       // =========================================================================
-      function buildHuntingStand3DMesh(isSelected) {
+      function buildStand3DMesh(isSelected) {
         const group = new THREE.Group();
-        const legMat = new THREE.MeshStandardMaterial({
-          color: isSelected ? 0x10b981 : 0x475569,
-          roughness: 0.55,
+        const postMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x34d399 : 0x475569,
+          roughness: 0.5,
           metalness: 0.45
         });
-        const cabinMat = new THREE.MeshStandardMaterial({
-          color: isSelected ? 0x34d399 : 0x10b981,
-          emissive: isSelected ? 0x059669 : 0x064e3b,
-          emissiveIntensity: isSelected ? 0.55 : 0.25,
-          roughness: 0.45
+        const blindMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x10b981 : 0x3f4e3a,
+          roughness: 0.78,
+          metalness: 0.08
         });
         const roofMat = new THREE.MeshStandardMaterial({
-          color: 0x0f172a,
-          roughness: 0.65
+          color: isSelected ? 0x6ee7b7 : 0x1e293b,
+          roughness: 0.65,
+          metalness: 0.2
         });
 
-        // 4 splayed tower legs
-        const legGeo = new THREE.CylinderGeometry(0.14, 0.2, 4.4, 6);
-        const offsets = [
-          [-0.75, -0.75, 0.12, -0.12],
-          [0.75, -0.75, -0.12, -0.12],
-          [-0.75, 0.75, 0.12, 0.12],
-          [0.75, 0.75, -0.12, 0.12]
-        ];
-        offsets.forEach(([ox, oz, rx, rz]) => {
-          const leg = new THREE.Mesh(legGeo, legMat);
-          leg.position.set(ox, 2.1, oz);
-          leg.rotation.set(rz, 0, rx);
+        const legGeo = new THREE.CylinderGeometry(0.16, 0.2, 6.2, 8);
+        [
+          [-1.35, -1.35],
+          [1.35, -1.35],
+          [-1.35, 1.35],
+          [1.35, 1.35]
+        ].forEach(([ox, oz]) => {
+          const leg = new THREE.Mesh(legGeo, postMat);
+          leg.position.set(ox, 3.1, oz);
           leg.castShadow = true;
           group.add(leg);
         });
 
-        // Cross-brace platform
-        const deck = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.22, 2.1), legMat);
-        deck.position.y = 4.1;
-        group.add(deck);
+        const braceGeo = new THREE.BoxGeometry(2.85, 0.14, 0.14);
+        const braceFront = new THREE.Mesh(braceGeo, postMat);
+        braceFront.position.set(0, 3.4, 1.35);
+        group.add(braceFront);
 
-        // Elevated Enclosed Box Blind
-        const box = new THREE.Mesh(new THREE.BoxGeometry(1.85, 1.85, 1.85), cabinMat);
-        box.position.y = 5.1;
-        box.castShadow = true;
-        group.add(box);
+        const braceBack = new THREE.Mesh(braceGeo, postMat);
+        braceBack.position.set(0, 3.4, -1.35);
+        group.add(braceBack);
 
-        // Pitched Pyramid Roof
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.9, 4), roofMat);
-        roof.position.y = 6.45;
-        roof.rotation.y = Math.PI / 4;
+        const cabinGeo = new THREE.BoxGeometry(3.2, 2.5, 3.2);
+        const cabin = new THREE.Mesh(cabinGeo, blindMat);
+        cabin.position.set(0, 7.1, 0);
+        cabin.castShadow = true;
+        group.add(cabin);
+
+        const roofGeo = new THREE.ConeGeometry(2.65, 1.35, 4);
+        roofGeo.rotateY(Math.PI / 4);
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 8.95, 0);
         roof.castShadow = true;
         group.add(roof);
 
         return group;
       }
 
-      function buildOneSidedSwingGate3DMesh(isSelected) {
+      function buildOneSidedGate3DMesh(isSelected) {
         const group = new THREE.Group();
-        const postMat = new THREE.MeshStandardMaterial({
-          color: 0x1e293b,
+        const hingePostMat = new THREE.MeshStandardMaterial({
+          color: 0x334155,
           roughness: 0.5,
-          metalness: 0.5
+          metalness: 0.4
         });
-        const redMat = new THREE.MeshStandardMaterial({
-          color: isSelected ? 0x10b981 : 0xef4444,
-          emissive: isSelected ? 0x059669 : 0x7f1d1d,
-          emissiveIntensity: 0.35,
-          roughness: 0.4
+        const redStripeMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x10b981 : 0xdc2626,
+          roughness: 0.45,
+          metalness: 0.1
         });
-        const whiteMat = new THREE.MeshStandardMaterial({
-          color: 0xfaf6ec,
-          roughness: 0.4
+        const whiteStripeMat = new THREE.MeshStandardMaterial({
+          color: 0xf8fafc,
+          roughness: 0.4,
+          metalness: 0.05
         });
 
-        // Single Hinge Post on Left (-X)
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 3.6, 10), postMat);
-        post.position.set(-1.6, 1.8, 0);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 4.6, 12), hingePostMat);
+        post.position.set(-2.2, 2.3, 0);
         post.castShadow = true;
         group.add(post);
 
-        // Post Cap
-        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 10), redMat);
-        cap.position.set(-1.6, 3.65, 0);
-        group.add(cap);
-
-        // Hinge Collars
-        [1.5, 2.8].forEach(hy => {
-          const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.25, 10), redMat);
-          collar.position.set(-1.6, hy, 0);
+        [1.4, 2.8].forEach(hy => {
+          const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.24, 12), redStripeMat);
+          collar.position.set(-2.2, hy, 0);
           group.add(collar);
         });
 
-        // Cantilevered Red-and-White Striped Swing Arm extending Right (+X)
-        const segCount = 5;
-        const segW = 0.68;
-        for (let i = 0; i < segCount; i++) {
+        const armLength = 5.4;
+        const segments = 6;
+        const segLen = armLength / segments;
+        for (let i = 0; i < segments; i++) {
           const seg = new THREE.Mesh(
-            new THREE.BoxGeometry(segW, 0.36, 0.24),
-            i % 2 === 0 ? redMat : whiteMat
+            new THREE.BoxGeometry(segLen, 0.32, 0.32),
+            i % 2 === 0 ? redStripeMat : whiteStripeMat
           );
-          seg.position.set(-1.2 + i * segW, 2.55, 0);
+          seg.position.set(-2.0 + (i + 0.5) * segLen, 2.1, 0);
           seg.castShadow = true;
           group.add(seg);
         }
 
-        // Diagonal Support Brace from lower hinge post to mid-arm
-        const brace = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.9, 8), postMat);
-        brace.position.set(-0.75, 2.0, 0);
-        brace.rotation.z = -Math.PI / 3.2;
+        const brace = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4.3, 8), hingePostMat);
+        brace.position.set(-0.6, 1.75, 0);
+        brace.rotation.z = -0.34;
         group.add(brace);
 
         return group;
       }
 
+      // White Tent-Shed with Peaked Gable Roof
       function buildShop3DMesh(isSelected) {
         const group = new THREE.Group();
         const wallMat = new THREE.MeshStandardMaterial({
-          color: isSelected ? 0x10b981 : 0xdc2626,
-          emissive: isSelected ? 0x059669 : 0x7f1d1d,
-          emissiveIntensity: 0.3,
-          roughness: 0.55
+          color: isSelected ? 0x34d399 : 0xf8fafc,
+          roughness: 0.55,
+          metalness: 0.06
         });
         const roofMat = new THREE.MeshStandardMaterial({
-          color: 0x1e293b,
-          roughness: 0.65
+          color: isSelected ? 0x059669 : 0x475569,
+          roughness: 0.45,
+          metalness: 0.35
         });
-        const doorMat = new THREE.MeshStandardMaterial({
-          color: 0xfaf6ec,
-          roughness: 0.45
+        const trimMat = new THREE.MeshStandardMaterial({
+          color: 0x94a3b8,
+          roughness: 0.5,
+          metalness: 0.2
         });
 
-        // Main Barn/Shop Body
-        const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.3, 2.6), wallMat);
-        body.position.y = 1.15;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(5.8, 2.6, 4.4), wallMat);
+        body.position.set(0, 1.3, 0);
         body.castShadow = true;
+        body.receiveShadow = true;
         group.add(body);
 
-        // White Roll-Up Bay Door
-        const door = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.45, 0.14), doorMat);
-        door.position.set(0, 0.75, 1.32);
-        group.add(door);
-
-        // Pitched Gable Roof (extruded triangular prism)
+        // Triangular tent-shed gable prism roof
         const roofShape = new THREE.Shape();
-        roofShape.moveTo(-1.85, 0);
-        roofShape.lineTo(1.85, 0);
-        roofShape.lineTo(0, 1.25);
+        roofShape.moveTo(-3.2, 0);
+        roofShape.lineTo(0, 2.5);
+        roofShape.lineTo(3.2, 0);
         roofShape.closePath();
 
         const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
-          depth: 3.0,
+          depth: 4.9,
           bevelEnabled: false
         });
-        roofGeo.translate(0, 2.3, -1.5);
+        roofGeo.translate(0, 0, -2.45);
         const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 2.55, 0);
         roof.castShadow = true;
         group.add(roof);
 
+        // Ridge beam
+        const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 5.05), trimMat);
+        ridge.position.set(0, 5.06, 0);
+        group.add(ridge);
+
+        // Double shed doors
+        const doorLeft = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.0, 0.14), trimMat);
+        doorLeft.position.set(-0.62, 1.0, 2.22);
+        group.add(doorLeft);
+
+        const doorRight = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.0, 0.14), trimMat);
+        doorRight.position.set(0.62, 1.0, 2.22);
+        group.add(doorRight);
+
+        return group;
+      }
+
+      // Sculpted Rounded 3D Bear Model for Bear Den
+      function buildBear3DMesh(isSelected) {
+        const group = new THREE.Group();
+        const furMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x10b981 : 0x3b2314,
+          roughness: 0.78,
+          metalness: 0.04
+        });
+        const muzzleMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x6ee7b7 : 0x8c6239,
+          roughness: 0.65,
+          metalness: 0.04
+        });
+        const noseMat = new THREE.MeshStandardMaterial({
+          color: 0x0f172a,
+          roughness: 0.35
+        });
+
+        // Rounded torso
+        const torso = new THREE.Mesh(new THREE.SphereGeometry(1.85, 20, 16), furMat);
+        torso.scale.set(1.55, 0.96, 1.05);
+        torso.position.set(-0.15, 2.55, 0);
+        torso.castShadow = true;
+        group.add(torso);
+
+        // Shoulder hump
+        const hump = new THREE.Mesh(new THREE.SphereGeometry(1.35, 18, 14), furMat);
+        hump.scale.set(1.1, 0.95, 0.95);
+        hump.position.set(1.15, 2.95, 0);
+        hump.castShadow = true;
+        group.add(hump);
+
+        // Haunches
+        const haunch = new THREE.Mesh(new THREE.SphereGeometry(1.45, 18, 14), furMat);
+        haunch.scale.set(1.15, 0.95, 0.98);
+        haunch.position.set(-1.55, 2.65, 0);
+        haunch.castShadow = true;
+        group.add(haunch);
+
+        // Rounded head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(1.18, 20, 16), furMat);
+        head.scale.set(1.08, 0.98, 0.96);
+        head.position.set(2.55, 3.25, 0);
+        head.castShadow = true;
+        group.add(head);
+
+        // Rounded muzzle & nose
+        const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 14), muzzleMat);
+        muzzle.scale.set(1.25, 0.85, 0.85);
+        muzzle.position.set(3.55, 3.02, 0);
+        group.add(muzzle);
+
+        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), noseMat);
+        nose.position.set(4.25, 3.12, 0);
+        group.add(nose);
+
+        // Rounded ears
+        [-0.75, 0.75].forEach(ez => {
+          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.38, 14, 12), furMat);
+          ear.scale.set(0.65, 1.0, 1.0);
+          ear.position.set(2.35, 4.22, ez);
+          group.add(ear);
+        });
+
+        // Four cylindrical legs with rounded paws
+        const legGeo = new THREE.CylinderGeometry(0.46, 0.42, 2.1, 14);
+        const pawGeo = new THREE.SphereGeometry(0.48, 14, 10);
+        [
+          [1.35, 0.82],
+          [1.35, -0.82],
+          [-1.65, 0.82],
+          [-1.65, -0.82]
+        ].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeo, furMat);
+          leg.position.set(lx, 1.15, lz);
+          leg.castShadow = true;
+          group.add(leg);
+
+          const paw = new THREE.Mesh(pawGeo, furMat);
+          paw.scale.set(1.25, 0.6, 1.0);
+          paw.position.set(lx + 0.12, 0.25, lz);
+          group.add(paw);
+        });
+
+        // Stubby tail
+        const tail = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 10), furMat);
+        tail.position.set(-2.95, 2.95, 0);
+        group.add(tail);
+
+        group.scale.setScalar(0.5);
         return group;
       }
 
@@ -1568,95 +2171,72 @@
         waypointMeshes = [];
 
         const overlay = document.getElementById('labels-overlay');
-        overlay.innerHTML = '';
+        if (overlay) {
+          overlay.querySelectorAll('.wpt-label').forEach(el => el.remove());
+        }
 
         state.gpxData.waypoints.forEach(wpt => {
-          const { x, z, u, v } = latLonToWorldXZ(wpt.lat, wpt.lon);
-          const terrainEle = sampleElevationAtUV(u, v);
+          let { x, z, u, v } = latLonToWorldXZ(wpt.lat, wpt.lon);
+          if (wpt.category === 'bear') {
+            x += 2.6;
+            z += 0.9;
+            u = Math.max(0, Math.min(1, x / blockWidth + 0.5));
+            v = Math.max(0, Math.min(1, z / blockDepth + 0.5));
+          }
+          const terrainEle = wpt.ele !== null ? wpt.ele : sampleElevationAtUV(u, v);
           const groundY = eleMetersToWorldY(terrainEle);
           const isSelected = state.selectedItem?.type === 'waypoint' && state.selectedItem.data.id === wpt.id;
 
-          let pinGroup;
-          let labelHeightOffset = 7.4;
+          let markerGroup;
+          let labelHeightOffset = 8.5;
 
-          if (wpt.category === 'stand') {
-            pinGroup = buildHuntingStand3DMesh(isSelected);
-            labelHeightOffset = 7.8;
+          if (wpt.category === 'bear') {
+            markerGroup = buildBear3DMesh(isSelected);
+            labelHeightOffset = 3.2;
+          } else if (wpt.category === 'stand') {
+            markerGroup = buildStand3DMesh(isSelected);
+            labelHeightOffset = 10.6;
           } else if (wpt.category === 'gate') {
-            pinGroup = buildOneSidedSwingGate3DMesh(isSelected);
-            labelHeightOffset = 4.6;
+            markerGroup = buildOneSidedGate3DMesh(isSelected);
+            labelHeightOffset = 5.4;
           } else if (wpt.category === 'shop') {
-            pinGroup = buildShop3DMesh(isSelected);
-            labelHeightOffset = 4.5;
+            markerGroup = buildShop3DMesh(isSelected);
+            labelHeightOffset = 6.4;
           } else {
-            pinGroup = new THREE.Group();
-            const sphere = new THREE.Mesh(
-              new THREE.SphereGeometry(1.1, 14, 14),
-              new THREE.MeshBasicMaterial({ color: isSelected ? 0x10b981 : 0x38bdf8 })
+            markerGroup = new THREE.Group();
+            const pin = new THREE.Mesh(
+              new THREE.SphereGeometry(0.9, 14, 14),
+              new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.4 })
             );
-            sphere.position.y = 1.6;
-            pinGroup.add(sphere);
-            labelHeightOffset = 3.6;
+            pin.position.y = 2.0;
+            markerGroup.add(pin);
+            labelHeightOffset = 4.2;
           }
 
-          pinGroup.position.set(x, groundY, z);
-          pinGroup.visible = state.layers.waypoints;
-          pinGroup.userData = {
+          markerGroup.position.set(x, groundY, z);
+          markerGroup.visible = state.layers.waypoints;
+          markerGroup.userData = {
             itemType: 'waypoint',
             waypoint: wpt,
             labelAnchor: new THREE.Vector3(x, groundY + labelHeightOffset, z)
           };
+          dioramaGroup.add(markerGroup);
+          waypointMeshes.push(markerGroup);
 
-          dioramaGroup.add(pinGroup);
-          waypointMeshes.push(pinGroup);
-
-          // Floating DOM Label
-          const labelEl = document.createElement('div');
-          labelEl.id = `label-${wpt.id}`;
-          labelEl.className = `wpt-label px-2 py-1 rounded-lg text-[11px] font-semibold shadow-lg border backdrop-blur-md flex items-center gap-1.5 whitespace-nowrap ${
-            isSelected
-              ? 'selected bg-emerald-500 text-slate-950 border-emerald-300'
-              : 'bg-slate-900/85 text-slate-100 border-white/15 hover:border-emerald-400/60'
-          }`;
-          labelEl.innerHTML = `${getWaypointBadgeSVG(wpt.category)}<span>${wpt.name}</span>`;
-          labelEl.onclick = e => {
-            e.stopPropagation();
-            selectWaypoint(wpt);
-          };
-          overlay.appendChild(labelEl);
-        });
-      }
-
-      function updateWaypointScreenLabels() {
-        if (!camera || !renderer || state.renderMode !== 'diorama') return;
-        const width = renderer.domElement.clientWidth;
-        const height = renderer.domElement.clientHeight;
-
-        waypointMeshes.forEach(group => {
-          const wpt = group.userData.waypoint;
-          const el = document.getElementById(`label-${wpt.id}`);
-          if (!el) return;
-
-          if (!state.layers.waypoints) {
-            el.style.display = 'none';
-            return;
-          }
-
-          const proj = group.userData.labelAnchor.clone().project(camera);
-          if (proj.z > 1) {
-            el.style.display = 'none';
-            return;
-          }
-
-          const sx = (proj.x * 0.5 + 0.5) * width;
-          const sy = (-(proj.y * 0.5) + 0.5) * height;
-
-          if (sx < -60 || sx > width + 60 || sy < -40 || sy > height + 40) {
-            el.style.display = 'none';
-          } else {
-            el.style.display = 'flex';
-            el.style.left = `${sx}px`;
-            el.style.top = `${sy}px`;
+          if (overlay) {
+            const el = document.createElement('div');
+            el.id = `label-${wpt.id}`;
+            el.className = `wpt-label px-2.5 py-1 rounded-xl text-[11px] font-semibold shadow-xl border backdrop-blur-md flex items-center gap-1.5 whitespace-nowrap ${
+              isSelected
+                ? 'selected bg-emerald-500 text-slate-950 border-emerald-200'
+                : 'bg-slate-900/90 text-slate-100 border-white/15 hover:border-emerald-400/60'
+            }`;
+            el.innerHTML = `${getWaypointBadgeSVG(wpt.category)}<span>${wpt.name}</span>`;
+            el.onclick = e => {
+              e.stopPropagation();
+              selectWaypoint(wpt);
+            };
+            overlay.appendChild(el);
           }
         });
       }
@@ -1675,8 +2255,8 @@
             container: 'maplibre-container',
             center: [centerLon, centerLat],
             zoom: 14.3,
-            pitch: 58,
-            bearing: -24,
+            pitch: DEFAULT_VIEW.pitch,
+            bearing: DEFAULT_VIEW.bearing,
             antialias: true,
             style: {
               version: 8,
@@ -1714,7 +2294,9 @@
 
           maplibreMap.on('load', () => {
             syncMapLibreData();
+            syncCompassRotation();
           });
+          maplibreMap.on('rotate', syncCompassRotation);
         } catch (err) {
           console.warn('MapLibre fallback triggered:', err);
         }
@@ -1770,7 +2352,6 @@
           });
         });
 
-        // Clear & recreate DOM Markers
         maplibreMarkers.forEach(m => m.remove());
         maplibreMarkers = [];
 
@@ -1808,7 +2389,7 @@
         select.appendChild(trkGroup);
 
         const wptGroup = document.createElement('optgroup');
-        wptGroup.label = 'Stands, Gates & Shop';
+        wptGroup.label = 'Stands, Gates, Bear Den & Shop';
         state.gpxData.waypoints.forEach(w => {
           const opt = document.createElement('option');
           opt.value = `wpt:${w.id}`;
@@ -1838,6 +2419,7 @@
         document.getElementById('feature-select').value = `track:${track.id}`;
         build3DRoads();
         build3DWaypoints();
+        updateSurfaceTexture();
 
         const cfg = TIER_CONFIG[track.tier];
         const drawer = document.getElementById('inspector-drawer');
@@ -1857,7 +2439,6 @@
 
         drawElevationChart(track);
 
-        // Focus camera gently on track midpoint
         const midPt = track.points[Math.floor(track.points.length / 2)];
         if (state.renderMode === 'diorama' && orbit.target) {
           const { x, z, u, v } = latLonToWorldXZ(midPt.lat, midPt.lon);
@@ -1885,9 +2466,19 @@
         const eleFt = Math.round(terrainEle * METERS_TO_FEET);
 
         const badgeColor =
-          wpt.category === 'stand' ? '#10b981' : wpt.category === 'gate' ? '#ef4444' : '#f59e0b';
+          wpt.category === 'bear'
+            ? '#d97706'
+            : wpt.category === 'stand'
+            ? '#10b981'
+            : wpt.category === 'gate'
+            ? '#ef4444'
+            : wpt.category === 'shop'
+            ? '#f8fafc'
+            : '#38bdf8';
         const pillText =
-          wpt.category === 'stand'
+          wpt.category === 'bear'
+            ? 'Bear Den'
+            : wpt.category === 'stand'
             ? 'Hunting Stand'
             : wpt.category === 'gate'
             ? 'Property Gate'
@@ -1917,145 +2508,6 @@
         if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
         build3DRoads();
         build3DWaypoints();
-      }
-
-      function drawElevationChart(track) {
-        const canvas = document.getElementById('elevation-canvas');
-        const wrapper = document.getElementById('elevation-chart-wrapper');
-        if (!canvas || !wrapper) return;
-
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const rect = wrapper.getBoundingClientRect();
-        canvas.width = Math.max(200, Math.floor(rect.width * dpr));
-        canvas.height = Math.max(60, Math.floor(rect.height * dpr));
-
-        const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-        const w = rect.width;
-        const h = rect.height;
-
-        ctx.clearRect(0, 0, w, h);
-
-        const padL = 10, padR = 10, padT = 14, padB = 12;
-        const plotW = w - padL - padR;
-        const plotH = h - padT - padB;
-
-        const minE = track.minEle - 2;
-        const maxE = track.maxEle + 2;
-        const spanE = Math.max(maxE - minE, 1);
-        const totalD = Math.max(track.totalDist, 1);
-
-        const cfg = TIER_CONFIG[track.tier];
-
-        // Gradient fill
-        const grad = ctx.createLinearGradient(0, padT, 0, h - padB);
-        grad.addColorStop(0, cfg.rgba);
-        grad.addColorStop(1, 'rgba(15, 23, 42, 0.05)');
-
-        ctx.beginPath();
-        track.points.forEach((pt, idx) => {
-          const px = padL + (pt.dist / totalD) * plotW;
-          const py = padT + plotH - ((pt.ele - minE) / spanE) * plotH;
-          if (idx === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        });
-        ctx.lineTo(padL + plotW, padT + plotH);
-        ctx.lineTo(padL, padT + plotH);
-        ctx.closePath();
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // Profile Stroke
-        ctx.beginPath();
-        track.points.forEach((pt, idx) => {
-          const px = padL + (pt.dist / totalD) * plotW;
-          const py = padT + plotH - ((pt.ele - minE) / spanE) * plotH;
-          if (idx === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        });
-        ctx.strokeStyle = cfg.colorHex;
-        ctx.lineWidth = 2.2;
-        ctx.stroke();
-      }
-
-      function setupProfileScrubber() {
-        const wrapper = document.getElementById('elevation-chart-wrapper');
-        const readout = document.getElementById('elevation-readout');
-
-        const handleMove = clientX => {
-          if (!state.selectedItem || state.selectedItem.type !== 'track') return;
-          const track = state.selectedItem.data;
-          const rect = wrapper.getBoundingClientRect();
-          const t = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-          const targetDist = t * track.totalDist;
-
-          let closest = track.points[0];
-          for (let i = 1; i < track.points.length; i++) {
-            if (track.points[i].dist >= targetDist) {
-              closest = track.points[i];
-              break;
-            }
-            closest = track.points[i];
-          }
-
-          readout.classList.remove('hidden');
-          readout.textContent = `${(closest.dist * METERS_TO_MILES).toFixed(2)} mi • ${Math.round(
-            closest.ele * METERS_TO_FEET
-          )} ft`;
-
-          if (scrubMarkerMesh) {
-            const { x, z, u, v } = latLonToWorldXZ(closest.lat, closest.lon);
-            const y = eleMetersToWorldY(sampleElevationAtUV(u, v)) + 1.4;
-            scrubMarkerMesh.position.set(x, y, z);
-            scrubMarkerMesh.visible = true;
-          }
-        };
-
-        wrapper.addEventListener('mousemove', e => handleMove(e.clientX));
-        wrapper.addEventListener('touchmove', e => {
-          if (e.touches[0]) handleMove(e.touches[0].clientX);
-        });
-        wrapper.addEventListener('mouseleave', () => {
-          readout.classList.add('hidden');
-          if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
-        });
-      }
-
-      function toggleLayer(layerKey, visible) {
-        state.layers[layerKey] = visible;
-        if (layerKey === 'waypoints') {
-          waypointMeshes.forEach(m => (m.visible = visible));
-          updateWaypointScreenLabels();
-        } else {
-          roadMeshes.forEach(m => {
-            if (m.userData.track.tier === layerKey) m.visible = visible;
-          });
-        }
-        if (maplibreMap) syncMapLibreData();
-      }
-
-      function updateExaggeration(val) {
-        state.exaggeration = parseFloat(val);
-        document.getElementById('exag-value').textContent = `${state.exaggeration.toFixed(1)}x`;
-        rebuildDioramaMesh();
-      }
-
-      function setSurfaceStyle(style) {
-        state.surfaceStyle = style;
-        const btnHybrid = document.getElementById('btn-tex-hybrid');
-        const btnTopo = document.getElementById('btn-tex-topo');
-
-        if (style === 'hybrid') {
-          btnHybrid.className =
-            'py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition';
-          btnTopo.className =
-            'py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition';
-        } else {
-          btnTopo.className =
-            'py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition';
-          btnHybrid.className =
-            'py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition';
-        }
         updateSurfaceTexture();
       }
 
@@ -2077,8 +2529,9 @@
           threeCont.classList.remove('hidden');
           labelsOv.classList.remove('hidden');
           vignette.classList.remove('hidden');
-          dioramaCtrl.classList.remove('hidden');
           mapCont.classList.add('hidden');
+          dioramaCtrl.classList.remove('hidden');
+          updateWaypointScreenLabels();
         } else {
           btnSat.className =
             'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all bg-emerald-500 text-slate-950 shadow-md';
@@ -2087,16 +2540,215 @@
           threeCont.classList.add('hidden');
           labelsOv.classList.add('hidden');
           vignette.classList.add('hidden');
-          dioramaCtrl.classList.add('hidden');
           mapCont.classList.remove('hidden');
-
-          if (!maplibreMap) {
-            initMapLibre();
-          } else {
-            maplibreMap.resize();
-            syncMapLibreData();
+          dioramaCtrl.classList.add('hidden');
+          if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+          initMapLibre();
+          if (maplibreMap) {
+            setTimeout(() => {
+              maplibreMap.resize();
+              syncMapLibreData();
+              syncCompassRotation();
+            }, 60);
           }
         }
+        syncCompassRotation();
+      }
+
+      function toggleAutoRotate() {
+        autoRotate = !autoRotate;
+        const btn = document.getElementById('btn-auto-rotate');
+        if (!btn) return;
+        btn.textContent = autoRotate ? 'Spin: On' : 'Spin: Off';
+        btn.className = autoRotate
+          ? 'py-1.5 px-3 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-xs font-medium text-emerald-200 transition'
+          : 'py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-slate-300 transition';
+      }
+
+      function updateExaggeration(val) {
+        state.exaggeration = parseFloat(val) || 1.8;
+        document.getElementById('exag-value').textContent = `${state.exaggeration.toFixed(1)}x`;
+        rebuildDioramaMesh();
+      }
+
+      function setSurfaceStyle(style) {
+        state.surfaceStyle = style;
+        const btnHybrid = document.getElementById('btn-tex-hybrid');
+        const btnTopo = document.getElementById('btn-tex-topo');
+        if (style === 'hybrid') {
+          btnHybrid.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition';
+          btnTopo.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition';
+        } else {
+          btnTopo.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition';
+          btnHybrid.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition';
+        }
+        updateSurfaceTexture();
+      }
+
+      function drawElevationChart(track) {
+        const canvas = document.getElementById('elevation-canvas');
+        const wrapper = document.getElementById('elevation-chart-wrapper');
+        if (!canvas || !wrapper || !track || !track.points.length) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const width = wrapper.clientWidth || 600;
+        const height = wrapper.clientHeight || 100;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, width, height);
+
+        const cfg = TIER_CONFIG[track.tier] || TIER_CONFIG.secondary;
+        const pts = track.points;
+        const maxDist = Math.max(track.totalDist, 1);
+        const padX = 12;
+        const padTop = 14;
+        const padBot = 16;
+        const plotW = Math.max(10, width - padX * 2);
+        const plotH = Math.max(10, height - padTop - padBot);
+
+        let minE = Infinity, maxE = -Infinity;
+        pts.forEach(p => {
+          if (p.ele < minE) minE = p.ele;
+          if (p.ele > maxE) maxE = p.ele;
+        });
+        const spanE = Math.max(maxE - minE, 2);
+
+        const coords = pts.map(p => ({
+          x: padX + (p.dist / maxDist) * plotW,
+          y: padTop + (1 - (p.ele - minE) / spanE) * plotH
+        }));
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+        ctx.lineWidth = 1;
+        for (let g = 0; g <= 2; g++) {
+          const gy = padTop + (g / 2) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padX, gy);
+          ctx.lineTo(padX + plotW, gy);
+          ctx.stroke();
+        }
+
+        const grad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+        grad.addColorStop(0, cfg.rgba);
+        grad.addColorStop(1, 'rgba(15, 23, 42, 0.02)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(coords[0].x, padTop + plotH);
+        coords.forEach(c => ctx.lineTo(c.x, c.y));
+        ctx.lineTo(coords[coords.length - 1].x, padTop + plotH);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = cfg.colorHex;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        coords.forEach((c, i) => {
+          if (i === 0) ctx.moveTo(c.x, c.y);
+          else ctx.lineTo(c.x, c.y);
+        });
+        ctx.stroke();
+      }
+
+      function setupProfileScrubber() {
+        const wrapper = document.getElementById('elevation-chart-wrapper');
+        const readout = document.getElementById('elevation-readout');
+        if (!wrapper || !readout) return;
+
+        const updateScrub = clientX => {
+          if (!state.selectedItem || state.selectedItem.type !== 'track') return;
+          const track = state.selectedItem.data;
+          const pts = track.points;
+          if (!pts || pts.length < 2) return;
+
+          const rect = wrapper.getBoundingClientRect();
+          const padX = 12;
+          const plotW = Math.max(10, rect.width - padX * 2);
+          const ratio = Math.max(0, Math.min(1, (clientX - rect.left - padX) / plotW));
+
+          const targetDist = ratio * track.totalDist;
+          let bestPt = pts[0];
+          let bestDiff = Math.abs(pts[0].dist - targetDist);
+          for (let i = 1; i < pts.length; i++) {
+            const diff = Math.abs(pts[i].dist - targetDist);
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              bestPt = pts[i];
+            }
+          }
+
+          const mi = (bestPt.dist * METERS_TO_MILES).toFixed(2);
+          const ft = Math.round(bestPt.ele * METERS_TO_FEET);
+          readout.textContent = `${mi} mi • ${ft} ft`;
+          readout.classList.remove('hidden');
+
+          if (scrubMarkerMesh && state.renderMode === 'diorama') {
+            const { x, z, u, v } = latLonToWorldXZ(bestPt.lat, bestPt.lon);
+            const y = eleMetersToWorldY(sampleElevationAtUV(u, v)) + 1.2;
+            scrubMarkerMesh.position.set(x, y, z);
+            scrubMarkerMesh.visible = true;
+          }
+        };
+
+        wrapper.addEventListener('pointermove', e => updateScrub(e.clientX));
+        wrapper.addEventListener('pointerleave', () => {
+          readout.classList.add('hidden');
+          if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+        });
+      }
+
+      function updateWaypointScreenLabels() {
+        if (!camera || !renderer || !state.gpxData || state.renderMode !== 'diorama') return;
+        const width = renderer.domElement.clientWidth;
+        const height = renderer.domElement.clientHeight;
+        if (!width || !height) return;
+
+        waypointMeshes.forEach(group => {
+          const wpt = group.userData?.waypoint;
+          const anchor = group.userData?.labelAnchor;
+          if (!wpt || !anchor) return;
+          const el = document.getElementById(`label-${wpt.id}`);
+          if (!el) return;
+
+          if (!state.layers.waypoints) {
+            el.style.display = 'none';
+            return;
+          }
+
+          const projected = anchor.clone().project(camera);
+          const sx = (projected.x * 0.5 + 0.5) * width;
+          const sy = (-projected.y * 0.5 + 0.5) * height;
+
+          if (projected.z > 1 || sx < -60 || sx > width + 60 || sy < -40 || sy > height + 40) {
+            el.style.display = 'none';
+          } else {
+            el.style.display = 'flex';
+            el.style.left = `${sx}px`;
+            el.style.top = `${sy}px`;
+          }
+        });
+      }
+
+      function toggleLayer(layerKey, visible) {
+        state.layers[layerKey] = visible;
+        if (layerKey === 'waypoints') {
+          waypointMeshes.forEach(m => (m.visible = visible));
+          updateWaypointScreenLabels();
+        } else if (layerKey === 'roadLabels') {
+          updateRouteLabelOverlay();
+        } else {
+          roadMeshes.forEach(m => {
+            if (m.userData.track.tier === layerKey) m.visible = visible;
+          });
+          updateSurfaceTexture();
+        }
+        if (maplibreMap) syncMapLibreData();
       }
 
       function toggleSidebar() {
@@ -2104,11 +2756,12 @@
       }
 
       function resetCamera() {
-        orbit.theta = -0.42;
-        orbit.phi = 0.88;
-        orbit.radius = 315;
+        orbit.theta = DEFAULT_VIEW.theta;
+        orbit.phi = DEFAULT_VIEW.phi;
+        orbit.radius = DEFAULT_VIEW.radius;
         if (orbit.target) orbit.target.set(0, 12, 0);
         updateCameraFromOrbit();
+        updateRouteLabelOverlay();
       }
 
       function setStatusBadge(text, classes) {
@@ -2143,15 +2796,17 @@
           const parsed = parseGPXString(rawGpx);
           state.gpxData = parsed;
 
-          const minFt = Math.round(parsed.bounds.minEle * METERS_TO_FEET);
-          const maxFt = Math.round(parsed.bounds.maxEle * METERS_TO_FEET);
+          const totalMiles = parsed.tracks
+            .reduce((sum, t) => sum + (t.totalDist || 0) * METERS_TO_MILES, 0)
+            .toFixed(2);
           document.getElementById('map-title').textContent = parsed.title;
           document.getElementById(
             'map-subtitle'
-          ).textContent = `${parsed.tracks.length} Tracks • ${parsed.waypoints.length} Stands & Gates • Elev ${minFt}–${maxFt} ft`;
+          ).textContent = `${parsed.tracks.length} Tracks • ${parsed.waypoints.length} Stands & Gates • ${totalMiles} mi`;
 
           populateDropdown();
           await buildTerrainFromGPX(parsed);
+          syncCompassRotation();
           animateLoop();
         } catch (err) {
           console.error('3D Map bootstrap failed:', err);
