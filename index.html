@@ -1,0 +1,3639 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Tony's Land — Interactive 3D Terrain &amp; Trail Map</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- MapLibre GL JS (for Satellite 3D Terrain Mode) -->
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <script>
+      // Prevent cross-origin SecurityError when MapLibre inspects window.parent/window.top in sandboxed iframes
+      (function () {
+        const safeLoc = window.location;
+        try { void window.parent.location.href; } catch (e) {
+          try { Object.defineProperty(window, 'parent', { value: window, configurable: true }); } catch (_) {}
+        }
+        try { void window.top.location.href; } catch (e) {
+          try { Object.defineProperty(window, 'top', { value: window, configurable: true }); } catch (_) {}
+        }
+        if (!window.location.origin || window.location.origin === 'null') {
+          try { Object.defineProperty(safeLoc, 'origin', { value: 'https://localhost', configurable: true }); } catch (_) {}
+        }
+      })();
+    </script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script>
+      // Fallback CDN loader if unpkg is blocked or slow on mobile networks
+      (function () {
+        if (typeof window.maplibregl !== 'undefined') return;
+        const fallbackUrls = [
+          'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js'
+        ];
+        let idx = 0;
+        const loadNext = () => {
+          if (typeof window.maplibregl !== 'undefined' || idx >= fallbackUrls.length) return;
+          const s = document.createElement('script');
+          s.src = fallbackUrls[idx++];
+          s.onerror = loadNext;
+          document.head.appendChild(s);
+        };
+        loadNext();
+      })();
+    </script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        overflow: hidden;
+        overscroll-behavior: none;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: #0b0f0d;
+        color: #f1f5f9;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* Safe-area offsets so header & bottom pills stay visible on mobile Safari/Chrome */
+      .mobile-top-safe {
+        top: max(0.75rem, env(safe-area-inset-top));
+      }
+      .mobile-subtop-safe {
+        top: calc(max(0.75rem, env(safe-area-inset-top)) + 3.75rem);
+      }
+      .mobile-bottom-safe {
+        bottom: max(0.875rem, env(safe-area-inset-bottom));
+      }
+      @media (min-width: 640px) {
+        .mobile-top-safe { top: 1rem; }
+        .mobile-subtop-safe { top: 5rem; }
+        .mobile-bottom-safe { bottom: 1rem; }
+      }
+
+      /* Custom Scrollbar for Control Drawer */
+      .custom-scroll::-webkit-scrollbar { width: 5px; }
+      .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+      .custom-scroll::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.25);
+        border-radius: 9999px;
+      }
+      .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.45);
+      }
+
+      /* 3D Floating Waypoint Labels */
+      .wpt-label {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 0.15s ease, opacity 0.2s ease, background-color 0.15s ease;
+        z-index: 15;
+        will-change: left, top;
+      }
+      .wpt-label:hover {
+        transform: translate(-50%, -105%) scale(1.06);
+        z-index: 25;
+      }
+      .wpt-label.selected {
+        z-index: 30;
+        transform: translate(-50%, -108%) scale(1.08);
+      }
+
+      /* Range Slider Styling */
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.12);
+        height: 6px;
+        border-radius: 999px;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #10b981;
+        cursor: pointer;
+        border: 2px solid #0f172a;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #10b981;
+        cursor: pointer;
+        border: 2px solid #0f172a;
+      }
+
+      .maplibregl-ctrl-attrib { display: none !important; }
+    </style>
+  </head>
+  <body class="relative w-full h-full overflow-hidden bg-[#0b0f0d]">
+    <!-- ===================================================================== -->
+    <!-- VIEWPORT CONTAINERS                                                   -->
+    <!-- ===================================================================== -->
+    <div id="three-container" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing touch-none"></div>
+    <div id="labels-overlay" class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-10"></div>
+    <div id="maplibre-container" class="absolute inset-0 w-full h-full z-0 hidden"></div>
+    <canvas id="sat2d-road-labels-canvas" class="pointer-events-none absolute inset-0 w-full h-full z-10 hidden"></canvas>
+
+    <!-- Subtle Vignette for Diorama Depth -->
+    <div id="vignette-overlay" class="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_58%,rgba(5,8,7,0.72)_100%)]"></div>
+
+    <!-- ===================================================================== -->
+    <!-- TOP HEADER BAR                                                        -->
+    <!-- ===================================================================== -->
+    <header class="fixed mobile-top-safe left-3 right-3 sm:left-4 sm:right-4 z-30 flex items-center justify-between gap-2 pointer-events-none">
+      <!-- Brand / Property Title Pill -->
+      <div class="pointer-events-auto flex items-center gap-2.5 sm:gap-3 bg-slate-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl shadow-2xl min-w-0">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shrink-0">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h1 id="map-title" class="text-sm sm:text-base font-bold tracking-tight text-white leading-none truncate">Tony's Land</h1>
+            <span id="terrain-status-badge" class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0">
+              3D Relief
+            </span>
+          </div>
+          <p id="map-subtitle" class="text-[10px] sm:text-[11px] text-slate-400 mt-1 leading-none truncate">11 Tracks &bull; 14 Stands &bull; Elev 502–938 ft</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher & Camera Controls -->
+      <div class="pointer-events-auto flex items-center gap-2 shrink-0">
+        <!-- View Mode Segmented Control -->
+        <div class="fixed mobile-bottom-safe left-3 sm:static flex items-center bg-slate-900/90 backdrop-blur-md border border-white/15 p-1 rounded-2xl shadow-2xl z-30">
+          <button
+            id="btn-mode-diorama"
+            onclick="setRenderMode('diorama')"
+            class="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all bg-emerald-500 text-slate-950 shadow-md"
+          >
+            3D Block
+          </button>
+          <button
+            id="btn-mode-satellite-2d"
+            onclick="setRenderMode('satellite2d')"
+            class="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all text-slate-300 hover:text-white"
+          >
+            Satellite 2D
+          </button>
+          <button
+            id="btn-mode-satellite"
+            onclick="setRenderMode('satellite')"
+            class="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all text-slate-300 hover:text-white"
+          >
+            Satellite 3D
+          </button>
+        </div>
+
+        <!-- Panel Toggle -->
+        <button
+          id="btn-toggle-panel"
+          onclick="toggleSidebar()"
+          class="bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-white/10 p-2.5 rounded-2xl text-slate-200 shadow-2xl transition shrink-0"
+          title="Toggle Controls & Legend"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- ORIENTATION-SYNCED COMPASS WIDGET                                     -->
+    <!-- ===================================================================== -->
+    <button
+      id="compass-widget"
+      onclick="alignMapNorth()"
+      title="Compass Rose (Click to align North)"
+      class="fixed mobile-bottom-safe right-3 sm:right-4 z-30 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-white/15 shadow-2xl flex flex-col items-center justify-center text-slate-200 transition group cursor-pointer"
+    >
+      <div id="compass-dial" class="relative w-13 h-13 sm:w-16 sm:h-16 flex items-center justify-center transition-transform duration-75" style="transform: rotate(0deg);">
+        <svg viewBox="0 0 100 100" class="w-full h-full overflow-visible">
+          <!-- Inner bezel ring -->
+          <circle cx="50" cy="50" r="37" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="0.9" stroke-dasharray="2 2" />
+
+          <!-- Degree tick marks every 15 deg (major every 45 deg) -->
+          <g stroke="rgba(203,213,225,0.45)" stroke-linecap="round">
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(15 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(30 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(45 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(60 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(75 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" transform="rotate(90 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(105 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(120 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(135 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(150 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(165 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" transform="rotate(180 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(195 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(210 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(225 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(240 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(255 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9" stroke-width="1.4" transform="rotate(270 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(285 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(300 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="9.5" stroke-width="1.3" transform="rotate(315 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(330 50 50)" />
+            <line x1="50" y1="4" x2="50" y2="7.5" stroke-width="0.9" transform="rotate(345 50 50)" />
+          </g>
+
+          <!-- Intercardinal star points (NE, SE, SW, NW) -->
+          <g fill="rgba(148,163,184,0.28)">
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(45 50 50)" />
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(135 50 50)" />
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(225 50 50)" />
+            <polygon points="50,22 53.5,46.5 50,50 46.5,46.5" transform="rotate(315 50 50)" />
+          </g>
+
+          <!-- South / East / West pointer facets -->
+          <polygon points="50,82 54.5,50 50,45 45.5,50" fill="#64748b" />
+          <polygon points="82,50 50,45.5 45,50 50,54.5" fill="rgba(148,163,184,0.45)" />
+          <polygon points="18,50 50,45.5 55,50 50,54.5" fill="rgba(148,163,184,0.45)" />
+
+          <!-- North pointer facets (crimson/rose highlight) -->
+          <polygon points="50,15 50,50 44.5,50" fill="#f43f5e" />
+          <polygon points="50,15 55.5,50 50,50" fill="#fb7185" />
+
+          <!-- Center pivot cap -->
+          <circle cx="50" cy="50" r="5" fill="#0f172a" stroke="#e2e8f0" stroke-width="1.5" />
+          <circle cx="50" cy="50" r="1.8" fill="#f43f5e" />
+
+          <!-- Cardinal & Intercardinal Labels -->
+          <text x="50" y="13.5" text-anchor="middle" dominant-baseline="central" fill="#fb7185" font-size="9.5" font-weight="800">N</text>
+          <text x="50" y="90.5" text-anchor="middle" dominant-baseline="central" fill="#cbd5e1" font-size="8" font-weight="700">S</text>
+          <text x="90.5" y="50" text-anchor="middle" dominant-baseline="central" fill="#cbd5e1" font-size="8" font-weight="700">E</text>
+          <text x="9.5" y="50" text-anchor="middle" dominant-baseline="central" fill="#cbd5e1" font-size="8" font-weight="700">W</text>
+
+          <text x="77.5" y="22.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">NE</text>
+          <text x="77.5" y="77.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">SE</text>
+          <text x="22.5" y="77.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">SW</text>
+          <text x="22.5" y="22.5" text-anchor="middle" dominant-baseline="central" fill="#94a3b8" font-size="6.2" font-weight="700">NW</text>
+        </svg>
+      </div>
+    </button>
+
+    <!-- ===================================================================== -->
+    <!-- LEFT CONTROL & LEGEND DRAWER                                          -->
+    <!-- ===================================================================== -->
+    <aside
+      id="sidebar-panel"
+      class="hidden fixed mobile-subtop-safe left-3 sm:left-4 z-30 w-[calc(100vw-1.5rem)] max-w-[310px] max-h-[calc(100dvh-10.5rem)] overflow-y-auto custom-scroll bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl transition-all duration-200 space-y-4"
+    >
+      <!-- Drawer Header with Minimize Button -->
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Map Controls &amp; Legend</span>
+        <button
+          id="btn-minimize-sidebar"
+          type="button"
+          onclick="toggleMinimizeSidebar()"
+          class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-medium text-slate-300 hover:text-white transition cursor-pointer"
+          title="Minimize Information Bar"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+          <span>Minimize</span>
+        </button>
+      </div>
+
+      <!-- Quick Feature Selector & GPX Loader -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="feature-select" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Inspect Road or Stand
+          </label>
+        </div>
+        <select
+          id="feature-select"
+          onchange="handleDropdownSelect(this.value)"
+          class="w-full bg-slate-950/90 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-400 transition"
+        >
+          <option value="">-- Overview (All Trails &amp; Stands) --</option>
+        </select>
+      </div>
+
+      <!-- Color-Coded Road & Trail Legend / Toggles -->
+      <div class="border-t border-white/10 pt-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Route Tiers &amp; Layers</span>
+          <span class="text-[10px] text-slate-400">Toggle</span>
+        </div>
+
+        <div class="space-y-1.5 text-xs">
+          <!-- Tier 1: Main Roads (Warm Goldenrod) -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-1.5 rounded-full bg-[#FBBF24] shadow-[0_0_8px_rgba(251,191,36,0.65)] inline-block shrink-0"></span>
+              <div>
+                <div class="font-semibold text-white leading-tight">Main Roads</div>
+                <div class="text-[10px] text-slate-400">Shop, Big Valley, Big Ridge, Turkey, 171</div>
+              </div>
+            </div>
+            <input type="checkbox" checked onchange="toggleLayer('main', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
+          </label>
+
+          <!-- Tier 2: Secondary / ATV (Tangerine Amber) -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-1.5 rounded-full bg-[#F97316] shadow-[0_0_8px_rgba(249,115,22,0.65)] inline-block shrink-0"></span>
+              <div>
+                <div class="font-semibold text-white leading-tight">ATV / Secondary</div>
+                <div class="text-[10px] text-slate-400">Logging, Crickey's, Loops &amp; Spurs</div>
+              </div>
+            </div>
+            <input type="checkbox" checked onchange="toggleLayer('secondary', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
+          </label>
+
+          <!-- Waypoints: Stands, Gates, Bear Den & Shop -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 flex justify-center">
+                <span class="w-3 h-3 rounded-full bg-emerald-400 border-2 border-white inline-block"></span>
+              </span>
+              <div>
+                <div class="font-semibold text-white leading-tight">Stands, Gates, Bear Den &amp; Shop</div>
+                <div id="wpt-layer-subtitle" class="text-[10px] text-slate-400">14 Waypoints &amp; Labels</div>
+              </div>
+            </div>
+            <input type="checkbox" checked onchange="toggleLayer('waypoints', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
+          </label>
+
+          <!-- Road Labels Toggle -->
+          <label class="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 flex justify-center">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-white/20 text-[9px] font-bold text-slate-200 leading-none">TRL</span>
+              </span>
+              <div>
+                <div class="font-semibold text-white leading-tight">Road &amp; Trail Labels</div>
+                <div class="text-[10px] text-slate-400">Route Name Tags</div>
+              </div>
+            </div>
+            <input type="checkbox" checked onchange="toggleLayer('roadLabels', this.checked)" class="accent-emerald-500 w-4 h-4 rounded cursor-pointer" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 3D Terrain Controls -->
+      <div id="diorama-controls" class="border-t border-white/10 pt-3 space-y-3">
+        <!-- Vertical Exaggeration -->
+        <div>
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Terrain Relief</span>
+            <span id="exag-value" class="font-mono text-emerald-400 font-semibold">1.8x</span>
+          </div>
+          <input
+            id="exag-slider"
+            type="range"
+            min="0.5"
+            max="3.0"
+            step="0.1"
+            value="1.8"
+            oninput="updateExaggeration(this.value)"
+            class="w-full"
+          />
+        </div>
+
+        <!-- Surface Texture Style -->
+        <div>
+          <span class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Surface Layer</span>
+          <div class="grid grid-cols-2 gap-1.5 text-xs">
+            <button
+              id="btn-tex-hybrid"
+              onclick="setSurfaceStyle('hybrid')"
+              class="py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition"
+            >
+              Satellite + Contours
+            </button>
+            <button
+              id="btn-tex-topo"
+              onclick="setSurfaceStyle('topo')"
+              class="py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition"
+            >
+              Topo Map
+            </button>
+          </div>
+        </div>
+
+        <!-- Camera Reset & Auto-Orbit -->
+        <div class="flex items-center gap-2 pt-1">
+          <button
+            onclick="resetCamera()"
+            class="flex-1 py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-white transition"
+          >
+            Reset View
+          </button>
+          <button
+            id="btn-auto-rotate"
+            onclick="toggleAutoRotate()"
+            class="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-slate-300 transition"
+          >
+            Spin: Off
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Hint -->
+      <div class="border-t border-white/10 pt-2.5 text-[10px] text-slate-400 flex items-center justify-between">
+        <span>Drag: Orbit &bull; Right-Drag: Pan</span>
+        <span>Scroll/Pinch: Zoom</span>
+      </div>
+    </aside>
+
+    <!-- Minimized Left Information Bar Pill -->
+    <div
+      id="sidebar-minimized-pill"
+      class="flex fixed mobile-subtop-safe left-3 sm:left-4 z-30 items-center gap-2"
+    >
+      <button
+        type="button"
+        onclick="toggleMinimizeSidebar(false)"
+        class="flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-white/15 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-semibold text-slate-100 shadow-2xl transition cursor-pointer"
+        title="Expand Information Bar"
+      >
+        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+        <span>Map Info &amp; Controls</span>
+      </button>
+
+      <button
+        id="btn-minimized-reset-view"
+        type="button"
+        onclick="resetCamera()"
+        class="flex items-center gap-1.5 bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-white/15 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-2xl text-[11px] sm:text-xs font-semibold text-slate-100 shadow-2xl transition cursor-pointer"
+        title="Reset Camera View"
+      >
+        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Reset View</span>
+      </button>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- BOTTOM ELEVATION PROFILE & INSPECTOR CARD                             -->
+    <!-- ===================================================================== -->
+    <section
+      id="inspector-drawer"
+      class="hidden fixed mobile-bottom-safe left-3 right-3 sm:left-4 sm:right-4 z-40 max-w-3xl mx-auto bg-slate-900/95 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 sm:p-4 shadow-2xl transition-all"
+    >
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div class="flex items-center gap-2.5">
+          <span id="inspector-badge" class="w-3 h-3 rounded-full bg-[#FBBF24] shrink-0"></span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="inspector-title" class="text-sm sm:text-base font-bold text-white leading-tight">Big Valley Road</h2>
+              <span id="inspector-tier-pill" class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-slate-200">
+                Main Road
+              </span>
+            </div>
+            <p id="inspector-meta" class="text-xs text-slate-300 mt-0.5">
+              Distance: 0.42 mi &bull; Elev: 590 ft – 633 ft &bull; Gain: +43 ft
+            </p>
+          </div>
+        </div>
+
+        <button
+          onclick="clearSelection()"
+          class="p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white transition"
+          title="Close Inspector"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Interactive Elevation Chart Container -->
+      <div id="elevation-chart-wrapper" class="relative w-full h-24 sm:h-28 bg-slate-950/70 rounded-xl border border-white/10 overflow-hidden cursor-crosshair touch-none">
+        <canvas id="elevation-canvas" class="w-full h-full block"></canvas>
+        <div
+          id="elevation-readout"
+          class="pointer-events-none absolute top-2 right-2.5 text-[11px] font-mono bg-slate-900/90 border border-white/10 px-2 py-0.5 rounded-lg text-emerald-300 hidden"
+        >
+          0.00 mi &bull; 620 ft
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- EMBEDDED DEFAULT GPX DATA (Tony's Land + Bear Den + Big Ridge SW)     -->
+    <!-- ===================================================================== -->
+    <script id="default-gpx-data" type="application/xml"><?xml version="1.0"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" creator="CALTOPO" version="1.1"><metadata><name><![CDATA[Tony's Land]]></name></metadata><wpt lat="34.52582539891374" lon="-92.87393831099773"><name>Shop Road Gate</name></wpt><wpt lat="34.52421829389809" lon="-92.87752021016149"><name>Shop</name></wpt><wpt lat="34.516717" lon="-92.878965"><name>Hunting Stand</name></wpt><wpt lat="34.513232" lon="-92.878628"><name>Box Stand</name></wpt><wpt lat="34.507312" lon="-92.875408"><name>Ben's Old Stand</name></wpt><wpt lat="34.50845" lon="-92.874029"><name>Roger's Stand</name></wpt><wpt lat="34.510226" lon="-92.871803"><name>Ladder Stand</name></wpt><wpt lat="34.50114750845685" lon="-92.8631074639909"><name>171 Gate</name></wpt><wpt lat="34.524497" lon="-92.851752"><name>Dollhouse</name></wpt><wpt lat="34.520295" lon="-92.85793"><name>Kirk's Stand</name></wpt><wpt lat="34.508434" lon="-92.86328"><name>Tripod Stand Cutoff</name></wpt><wpt lat="34.509458" lon="-92.87939"><name>Rickety Ladder Stand</name></wpt><wpt lat="34.505799" lon="-92.867288"><name>Ben's Stand</name></wpt><wpt lat="34.51512110844316" lon="-92.87110690798764"><name>Bear Den</name></wpt><trk><name>Shop Road</name><trkseg><trkpt lat="34.5258119236961" lon="-92.87396004529754"><ele>168.0</ele></trkpt><trkpt lat="34.52570309126779" lon="-92.87419607969085"><ele>169.0</ele></trkpt><trkpt lat="34.52556829445188" lon="-92.87459841104308"><ele>169.0</ele></trkpt><trkpt lat="34.52544786070723" lon="-92.87504097553054"><ele>170.0</ele></trkpt><trkpt lat="34.525304775939134" lon="-92.87551304431716"><ele>170.0</ele></trkpt><trkpt lat="34.52507136894782" lon="-92.8761051419572"><ele>171.0</ele></trkpt><trkpt lat="34.52489237384547" lon="-92.87668986352244"><ele>172.0</ele></trkpt><trkpt lat="34.524687248624595" lon="-92.87741986816002"><ele>172.0</ele></trkpt><trkpt lat="34.52447952491942" lon="-92.87748692338539"><ele>173.0</ele></trkpt><trkpt lat="34.52425412201492" lon="-92.87776319091392"><ele>173.0</ele></trkpt><trkpt lat="34.52397568229077" lon="-92.87789193694664"><ele>174.0</ele></trkpt><trkpt lat="34.523689506134566" lon="-92.87814942901207"><ele>175.0</ele></trkpt><trkpt lat="34.52344863209625" lon="-92.87832913701607"><ele>177.0</ele></trkpt><trkpt lat="34.52315693562075" lon="-92.87853834931923"><ele>180.0</ele></trkpt><trkpt lat="34.52287849222875" lon="-92.87866441314293"><ele>188.35</ele></trkpt><trkpt lat="34.5226420377377" lon="-92.87860272233559"><ele>193.89</ele></trkpt><trkpt lat="34.52230393229489" lon="-92.87837473456932"><ele>198.0</ele></trkpt><trkpt lat="34.522040955311596" lon="-92.87821648423744"><ele>201.0</ele></trkpt><trkpt lat="34.5217138946242" lon="-92.87811724250389"><ele>205.0</ele></trkpt><trkpt lat="34.52146196532615" lon="-92.87793485229088"><ele>211.0</ele></trkpt><trkpt lat="34.521170259091406" lon="-92.87773100440575"><ele>217.5</ele></trkpt></trkseg></trk><trk><name>Logging Road</name><trkseg><trkpt lat="34.520326202321506" lon="-92.88009620973334"><ele>218.0</ele></trkpt><trkpt lat="34.52048200291735" lon="-92.87979312011466"><ele>216.0</ele></trkpt><trkpt lat="34.52050299700007" lon="-92.87935994335875"><ele>215.0</ele></trkpt><trkpt lat="34.52055382506987" lon="-92.87877119847998"><ele>217.0</ele></trkpt><trkpt lat="34.52075050836127" lon="-92.87832058736548"><ele>217.0</ele></trkpt><trkpt lat="34.521072051686694" lon="-92.87784181305632"><ele>216.65</ele></trkpt><trkpt lat="34.52141679787664" lon="-92.87745691606268"><ele>217.0</ele></trkpt><trkpt lat="34.52179800492681" lon="-92.87689633437857"><ele>217.0</ele></trkpt><trkpt lat="34.52207976627533" lon="-92.87649668523535"><ele>214.0</ele></trkpt><trkpt lat="34.52226760647987" lon="-92.8759481734918"><ele>208.4</ele></trkpt><trkpt lat="34.522397989194005" lon="-92.8753165132688"><ele>204.0</ele></trkpt><trkpt lat="34.52255157555816" lon="-92.87470631071791"><ele>208.0</ele></trkpt><trkpt lat="34.522810130592816" lon="-92.87422753640875"><ele>209.0</ele></trkpt><trkpt lat="34.5231217213645" lon="-92.87365622588858"><ele>206.0</ele></trkpt><trkpt lat="34.52345098953531" lon="-92.87316404053435"><ele>199.0</ele></trkpt><trkpt lat="34.523895169705085" lon="-92.87273488709197"><ele>191.0</ele></trkpt><trkpt lat="34.52441006079251" lon="-92.87219173976645"><ele>181.72</ele></trkpt><trkpt lat="34.524860864010165" lon="-92.87175722190604"><ele>173.0</ele></trkpt><trkpt lat="34.525175205650996" lon="-92.87151220253348"><ele>167.0</ele></trkpt></trkseg></trk><trk><name>Crickey's Road</name><trkseg><trkpt lat="34.522849501974434" lon="-92.8741482506796"><ele>208.0</ele></trkpt><trkpt lat="34.5225810020143" lon="-92.8740047524973"><ele>201.68</ele></trkpt><trkpt lat="34.522320235792456" lon="-92.87381431565724"><ele>195.07</ele></trkpt><trkpt lat="34.52202411044896" lon="-92.8736614297434"><ele>190.0</ele></trkpt><trkpt lat="34.5217898678006" lon="-92.87325105176411"><ele>180.0</ele></trkpt><trkpt lat="34.52156224771072" lon="-92.8729238222643"><ele>173.09</ele></trkpt><trkpt lat="34.52126391635935" lon="-92.87275484309636"><ele>172.87</ele></trkpt></trkseg></trk><trk><name>Big Valley Road</name><trkseg><trkpt lat="34.51603469974215" lon="-92.87965557523307"><ele>193.1</ele></trkpt><trkpt lat="34.516349444165826" lon="-92.8792655467987"><ele>192.0</ele></trkpt><trkpt lat="34.516716403886676" lon="-92.87896497175097"><ele>190.0</ele></trkpt><trkpt lat="34.51707573607564" lon="-92.87854864262044"><ele>189.0</ele></trkpt><trkpt lat="34.51737857423723" lon="-92.87822376005352"><ele>187.45</ele></trkpt><trkpt lat="34.51767294667661" lon="-92.87760886363685"><ele>186.0</ele></trkpt><trkpt lat="34.518011240288615" lon="-92.87724039517343"><ele>184.25</ele></trkpt><trkpt lat="34.518438801169395" lon="-92.8770553227514"><ele>183.0</ele></trkpt><trkpt lat="34.51884842477739" lon="-92.8766890335828"><ele>182.0</ele></trkpt><trkpt lat="34.51908848248422" lon="-92.87621478550136"><ele>180.0</ele></trkpt><trkpt lat="34.51942157931626" lon="-92.87586358375847"><ele>180.0</ele></trkpt><trkpt lat="34.51976599171758" lon="-92.87528456188738"><ele>178.0</ele></trkpt><trkpt lat="34.520095735788345" lon="-92.87478013895452"><ele>177.0</ele></trkpt><trkpt lat="34.52037024311721" lon="-92.8743059746921"><ele>176.0</ele></trkpt><trkpt lat="34.52073569409549" lon="-92.87375536747277"><ele>175.0</ele></trkpt><trkpt lat="34.5210893265903" lon="-92.8731317538768"><ele>173.0</ele></trkpt><trkpt lat="34.52142393216491" lon="-92.87237780168653"><ele>172.0</ele></trkpt><trkpt lat="34.521811259910464" lon="-92.87200547754765"><ele>171.0</ele></trkpt><trkpt lat="34.5221702568233" lon="-92.87142360582948"><ele>170.0</ele></trkpt><trkpt lat="34.52258742414415" lon="-92.871382702142"><ele>169.0</ele></trkpt><trkpt lat="34.52296025119722" lon="-92.8711324185133"><ele>169.0</ele></trkpt><trkpt lat="34.523371467366815" lon="-92.8708456736058"><ele>168.81</ele></trkpt><trkpt lat="34.52386583201587" lon="-92.87078465335071"><ele>177.88</ele></trkpt><trkpt lat="34.52412122860551" lon="-92.87091700360179"><ele>178.93</ele></trkpt><trkpt lat="34.523913441225886" lon="-92.87114482372999"><ele>180.0</ele></trkpt><trkpt lat="34.5235448051244" lon="-92.87142754532397"><ele>184.66</ele></trkpt><trkpt lat="34.52315035276115" lon="-92.87192601710558"><ele>186.0</ele></trkpt><trkpt lat="34.522844245657325" lon="-92.87239900790155"><ele>189.0</ele></trkpt><trkpt lat="34.52258596928536" lon="-92.87276591972532"><ele>194.0</ele></trkpt></trkseg></trk><trk><name>Box Stand Cutoff</name><trkseg><trkpt lat="34.51639357584526" lon="-92.87922409482043"><ele>192.0</ele></trkpt><trkpt lat="34.5162782818079" lon="-92.8789394069463"><ele>196.13</ele></trkpt><trkpt lat="34.51596354134381" lon="-92.87887989543378"><ele>202.48</ele></trkpt><trkpt lat="34.51553572900593" lon="-92.87886807695031"><ele>212.67</ele></trkpt><trkpt lat="34.51515351422131" lon="-92.87872424349189"><ele>220.0</ele></trkpt><trkpt lat="34.51477515511215" lon="-92.87835468538105"><ele>222.0</ele></trkpt><trkpt lat="34.514441303908825" lon="-92.87802209146321"><ele>223.55</ele></trkpt><trkpt lat="34.51414383016527" lon="-92.87768128328025"><ele>234.0</ele></trkpt><trkpt lat="34.51394281003171" lon="-92.87736863711355"><ele>239.0</ele></trkpt></trkseg></trk><trk><name>Middle Ridge South</name><trkseg><trkpt lat="34.512839084907455" lon="-92.87942494215184"><ele>227.54</ele></trkpt><trkpt lat="34.51304077170789" lon="-92.8789396584034"><ele>227.0</ele></trkpt><trkpt lat="34.51325945556164" lon="-92.8785783983767"><ele>231.0</ele></trkpt><trkpt lat="34.513520719483495" lon="-92.87811756134033"><ele>232.0</ele></trkpt><trkpt lat="34.51381903141737" lon="-92.8775701392442"><ele>237.0</ele></trkpt><trkpt lat="34.51414341107011" lon="-92.87711039185524"><ele>240.0</ele></trkpt><trkpt lat="34.514202335849404" lon="-92.8767720144242"><ele>237.0</ele></trkpt><trkpt lat="34.51404978521168" lon="-92.87634135223925"><ele>229.2</ele></trkpt><trkpt lat="34.51385666616261" lon="-92.87585847079754"><ele>221.0</ele></trkpt><trkpt lat="34.51355525292456" lon="-92.87555890157819"><ele>213.49</ele></trkpt><trkpt lat="34.51332678846562" lon="-92.87549834093133"><ele>212.0</ele></trkpt></trkseg></trk><trk><name>Turkey Road</name><trkseg><trkpt lat="34.511117491095284" lon="-92.87992377765477"><ele>194.0</ele></trkpt><trkpt lat="34.51138869859278" lon="-92.87961155176163"><ele>195.68</ele></trkpt><trkpt lat="34.51165775768459" lon="-92.87911861203611"><ele>198.0</ele></trkpt><trkpt lat="34.511882308870554" lon="-92.87861184217036"><ele>198.0</ele></trkpt><trkpt lat="34.51206595636904" lon="-92.87807657383382"><ele>201.08</ele></trkpt><trkpt lat="34.512235186994076" lon="-92.87761674262583"><ele>205.0</ele></trkpt><trkpt lat="34.5123356860131" lon="-92.87693604826927"><ele>208.0</ele></trkpt><trkpt lat="34.51263844035566" lon="-92.87647856399417"><ele>207.0</ele></trkpt><trkpt lat="34.5129541028291" lon="-92.87616164423525"><ele>208.0</ele></trkpt><trkpt lat="34.51324185356498" lon="-92.87565629929304"><ele>211.12</ele></trkpt><trkpt lat="34.51348526403308" lon="-92.87517023272812"><ele>210.0</ele></trkpt><trkpt lat="34.51379623264074" lon="-92.87486504763365"><ele>205.93</ele></trkpt><trkpt lat="34.514042157679796" lon="-92.87416247650981"><ele>208.0</ele></trkpt><trkpt lat="34.51436008326709" lon="-92.87360918708146"><ele>211.0</ele></trkpt><trkpt lat="34.51465110294521" lon="-92.87308825179935"><ele>208.0</ele></trkpt><trkpt lat="34.51499794609845" lon="-92.87251182831824"><ele>209.0</ele></trkpt><trkpt lat="34.51540522277355" lon="-92.87226070649922"><ele>205.0</ele></trkpt><trkpt lat="34.51591878198087" lon="-92.87209063768387"><ele>201.0</ele></trkpt><trkpt lat="34.51634355745653" lon="-92.87183388524716"><ele>198.0</ele></trkpt><trkpt lat="34.51665152795613" lon="-92.87173742428422"><ele>195.0</ele></trkpt><trkpt lat="34.51702737249434" lon="-92.87124683149159"><ele>193.0</ele></trkpt><trkpt lat="34.51712016016245" lon="-92.87061123177409"><ele>200.0</ele></trkpt><trkpt lat="34.51671657152474" lon="-92.8703001793474"><ele>203.0</ele></trkpt><trkpt lat="34.516718750819564" lon="-92.86962057463825"><ele>201.0</ele></trkpt><trkpt lat="34.51704732142389" lon="-92.86903291940689"><ele>201.0</ele></trkpt><trkpt lat="34.51746574603021" lon="-92.86854526028037"><ele>198.0</ele></trkpt><trkpt lat="34.51791669242084" lon="-92.86807520315051"><ele>194.51</ele></trkpt><trkpt lat="34.518434861674905" lon="-92.86809087730944"><ele>188.0</ele></trkpt><trkpt lat="34.51887340284884" lon="-92.86787814460695"><ele>187.0</ele></trkpt><trkpt lat="34.518700232729316" lon="-92.86736475303769"><ele>194.62</ele></trkpt><trkpt lat="34.51862651056008" lon="-92.86718926490875"><ele>197.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Southwest</name><extensions><gpxx:TrackExtension><gpxx:DisplayColor>DarkYellow</gpxx:DisplayColor></gpxx:TrackExtension></extensions><trkseg><trkpt lat="34.505515540454034" lon="-92.87955501207838"><ele>265.0</ele></trkpt><trkpt lat="34.50551709160209" lon="-92.87954332306981"><ele>265.0546875</ele></trkpt><trkpt lat="34.505526227876544" lon="-92.87952044047415"><ele>266.0</ele></trkpt><trkpt lat="34.5055388007313" lon="-92.8794975578785"><ele>266.0</ele></trkpt><trkpt lat="34.505557073280215" lon="-92.87947316654027"><ele>266.98148010449404</ele></trkpt><trkpt lat="34.50557668693364" lon="-92.87944885902107"><ele>267.03738433676165</ele></trkpt><trkpt lat="34.50559680350125" lon="-92.87942103110254"><ele>268.0</ele></trkpt><trkpt lat="34.50561926700175" lon="-92.87939144298434"><ele>268.55757243704284</ele></trkpt><trkpt lat="34.505644496530294" lon="-92.87936076521873"><ele>269.0</ele></trkpt><trkpt lat="34.505665032193065" lon="-92.87933176383376"><ele>269.9140625</ele></trkpt><trkpt lat="34.5056857354939" lon="-92.87930083461106"><ele>270.0</ele></trkpt><trkpt lat="34.505704175680876" lon="-92.87926797755063"><ele>270.88671875</ele></trkpt><trkpt lat="34.50572102330625" lon="-92.87923528812826"><ele>271.41015625046566</ele></trkpt><trkpt lat="34.50573661364615" lon="-92.87919891066849"><ele>272.0</ele></trkpt><trkpt lat="34.50575270690024" lon="-92.87916144356132"><ele>272.0</ele></trkpt><trkpt lat="34.50576980598271" lon="-92.87912238389254"><ele>273.0</ele></trkpt><trkpt lat="34.505785228684545" lon="-92.87907963618636"><ele>273.0</ele></trkpt><trkpt lat="34.5057980529964" lon="-92.879031104967"><ele>273.97036043036087</ele></trkpt><trkpt lat="34.505805345252156" lon="-92.87897913716733"><ele>274.0</ele></trkpt><trkpt lat="34.50580744072795" lon="-92.87892842665315"><ele>274.71093749953434</ele></trkpt><trkpt lat="34.50580450706184" lon="-92.87887838669121"><ele>275.0014763590502</ele></trkpt><trkpt lat="34.505797969177365" lon="-92.87883035838604"><ele>276.0</ele></trkpt><trkpt lat="34.50578983873129" lon="-92.87877880968153"><ele>276.0</ele></trkpt><trkpt lat="34.50578212738037" lon="-92.87872432731092"><ele>276.0</ele></trkpt><trkpt lat="34.50577366165817" lon="-92.87866372615099"><ele>276.0</ele></trkpt><trkpt lat="34.50576310046017" lon="-92.8786027058959"><ele>277.0</ele></trkpt><trkpt lat="34.50575413182378" lon="-92.87854797206819"><ele>277.0</ele></trkpt><trkpt lat="34.505746588110924" lon="-92.87850262597203"><ele>277.0</ele></trkpt><trkpt lat="34.50574038550258" lon="-92.87846717052162"><ele>277.0</ele></trkpt><trkpt lat="34.50573451817036" lon="-92.87843791767955"><ele>277.0</ele></trkpt><trkpt lat="34.505728567019105" lon="-92.87840975448489"><ele>277.0</ele></trkpt><trkpt lat="34.50572337023914" lon="-92.8783904761076"><ele>277.0</ele></trkpt><trkpt lat="34.50571917928755" lon="-92.87837186828256"><ele>277.0</ele></trkpt><trkpt lat="34.50571565888822" lon="-92.8783489856869"><ele>277.0</ele></trkpt><trkpt lat="34.50571264140308" lon="-92.87831998430192"><ele>277.0</ele></trkpt><trkpt lat="34.50571155175567" lon="-92.87828469648957"><ele>277.0</ele></trkpt><trkpt lat="34.50571230612695" lon="-92.87824781611562"><ele>277.0</ele></trkpt><trkpt lat="34.505715826526284" lon="-92.87820942699909"><ele>277.0</ele></trkpt><trkpt lat="34.5057201012969" lon="-92.87817170843482"><ele>277.0</ele></trkpt><trkpt lat="34.50572630390525" lon="-92.87813759408891"><ele>277.0</ele></trkpt><trkpt lat="34.505731500685215" lon="-92.87811169400811"><ele>277.0</ele></trkpt><trkpt lat="34.50573602691293" lon="-92.8780899848789"><ele>277.0</ele></trkpt><trkpt lat="34.50574139133096" lon="-92.8780672699213"><ele>277.0</ele></trkpt><trkpt lat="34.50574650429189" lon="-92.87804438732564"><ele>277.0</ele></trkpt><trkpt lat="34.505752455443144" lon="-92.87801790051162"><ele>276.85546875046566</ele></trkpt><trkpt lat="34.505759999156" lon="-92.87798906676471"><ele>276.0</ele></trkpt><trkpt lat="34.5057687163353" lon="-92.87795503623784"><ele>276.0</ele></trkpt><trkpt lat="34.50577575713396" lon="-92.8779205866158"><ele>276.0</ele></trkpt><trkpt lat="34.505783300846815" lon="-92.8778859693557"><ele>276.0</ele></trkpt><trkpt lat="34.50579193420708" lon="-92.87785420194268"><ele>275.22656249953434</ele></trkpt><trkpt lat="34.50580350123346" lon="-92.87782260216773"><ele>275.0</ele></trkpt><trkpt lat="34.50581540353596" lon="-92.87779125384986"><ele>275.0</ele></trkpt><trkpt lat="34.50582764111459" lon="-92.87775898352265"><ele>274.7890625</ele></trkpt><trkpt lat="34.50583979487419" lon="-92.87772478535771"><ele>274.0</ele></trkpt><trkpt lat="34.5058514457196" lon="-92.8776893299073"><ele>274.0</ele></trkpt><trkpt lat="34.50586209073663" lon="-92.87765228189528"><ele>273.9592130254823</ele></trkpt><trkpt lat="34.505872651934624" lon="-92.87761255167425"><ele>273.0</ele></trkpt><trkpt lat="34.505884386599064" lon="-92.87756930105388"><ele>273.0</ele></trkpt><trkpt lat="34.50589846819639" lon="-92.87752236239612"><ele>272.76171875</ele></trkpt><trkpt lat="34.505915232002735" lon="-92.8774734120816"><ele>272.0</ele></trkpt><trkpt lat="34.50593467801809" lon="-92.87742010317743"><ele>272.0</ele></trkpt><trkpt lat="34.50595714151859" lon="-92.87736210040748"><ele>271.29296875</ele></trkpt><trkpt lat="34.505983125418425" lon="-92.8773005772382"><ele>271.0</ele></trkpt><trkpt lat="34.50601137243211" lon="-92.87723829969764"><ele>270.52343750046566</ele></trkpt><trkpt lat="34.506041798740625" lon="-92.87717627361417"><ele>270.0</ele></trkpt><trkpt lat="34.5060742367059" lon="-92.8771195281297"><ele>270.0</ele></trkpt><trkpt lat="34.506104327738285" lon="-92.87707258947194"><ele>269.0</ele></trkpt><trkpt lat="34.50612938962877" lon="-92.87703487090766"><ele>269.0</ele></trkpt><trkpt lat="34.50615528970957" lon="-92.87699799053371"><ele>269.0</ele></trkpt><trkpt lat="34.506183452904224" lon="-92.87696060724556"><ele>269.0</ele></trkpt><trkpt lat="34.506214298307896" lon="-92.8769223857671"><ele>269.0</ele></trkpt><trkpt lat="34.50624430552125" lon="-92.87688290700316"><ele>269.0</ele></trkpt><trkpt lat="34.506270959973335" lon="-92.87684736773372"><ele>269.0</ele></trkpt><trkpt lat="34.506297279149294" lon="-92.87681492976844"><ele>269.0</ele></trkpt><trkpt lat="34.50632217340171" lon="-92.87678391672671"><ele>269.0</ele></trkpt><trkpt lat="34.50634740293026" lon="-92.87675525061786"><ele>269.0</ele></trkpt><trkpt lat="34.50637363828719" lon="-92.87672507576644"><ele>269.0</ele></trkpt><trkpt lat="34.50640205293894" lon="-92.87669146433473"><ele>269.0</ele></trkpt><trkpt lat="34.50642954558134" lon="-92.87666003219783"><ele>270.0</ele></trkpt><trkpt lat="34.50644756667316" lon="-92.87664025090635"><ele>270.0</ele></trkpt><trkpt lat="34.50646139681339" lon="-92.87662340328097"><ele>270.0</ele></trkpt><trkpt lat="34.50647480785847" lon="-92.87660705856979"><ele>270.0</ele></trkpt><trkpt lat="34.50648235157132" lon="-92.87659725174308"><ele>270.54595443455037</ele></trkpt><trkpt lat="34.50648386031389" lon="-92.87659456953406"><ele>270.67814321512304</ele></trkpt><trkpt lat="34.50648377649486" lon="-92.8765946533531"><ele>270.6732415648173</ele></trkpt><trkpt lat="34.506483944132924" lon="-92.87659524008632"><ele>270.6615572358569</ele></trkpt><trkpt lat="34.506477573886514" lon="-92.87660186178982"><ele>270.1622646487158</ele></trkpt><trkpt lat="34.50648377649486" lon="-92.8765946533531"><ele>270.6732415648173</ele></trkpt><trkpt lat="34.5064767356962" lon="-92.87660538218915"><ele>270.0</ele></trkpt><trkpt lat="34.50648620724678" lon="-92.87659800611436"><ele>270.6703957571299</ele></trkpt><trkpt lat="34.50650221668184" lon="-92.87658283486962"><ele>271.0</ele></trkpt><trkpt lat="34.5065179746598" lon="-92.87656808272004"><ele>271.0</ele></trkpt><trkpt lat="34.50652711093426" lon="-92.87655970081687"><ele>271.0</ele></trkpt><trkpt lat="34.506527949124575" lon="-92.87655911408365"><ele>271.0</ele></trkpt><trkpt lat="34.5065420307219" lon="-92.87654637359083"><ele>271.0</ele></trkpt><trkpt lat="34.50656197965145" lon="-92.8765291068703"><ele>271.9068927895379</ele></trkpt><trkpt lat="34.50658720918" lon="-92.87650748156011"><ele>272.0</ele></trkpt><trkpt lat="34.506620317697525" lon="-92.87648015655577"><ele>272.0</ele></trkpt><trkpt lat="34.50665904209018" lon="-92.87645073607564"><ele>273.0</ele></trkpt><trkpt lat="34.506703801453114" lon="-92.87642148323357"><ele>273.4471396672619</ele></trkpt><trkpt lat="34.50675191357732" lon="-92.87639080546796"><ele>274.0</ele></trkpt><trkpt lat="34.50680329464376" lon="-92.87635836750269"><ele>275.0</ele></trkpt><trkpt lat="34.50685325078666" lon="-92.87632408551872"><ele>275.08203125</ele></trkpt><trkpt lat="34.50689868070185" lon="-92.87628460675478"><ele>276.0</ele></trkpt><trkpt lat="34.50693480670452" lon="-92.87624018266797"><ele>276.0</ele></trkpt><trkpt lat="34.50696590356529" lon="-92.87619257345796"><ele>277.0</ele></trkpt><trkpt lat="34.506988702341914" lon="-92.87613733671606"><ele>277.0</ele></trkpt><trkpt lat="34.507001945748925" lon="-92.87607237696648"><ele>278.0</ele></trkpt><trkpt lat="34.50701896101236" lon="-92.8760106023401"><ele>278.0</ele></trkpt><trkpt lat="34.50704033486545" lon="-92.87595234811306"><ele>278.0</ele></trkpt><trkpt lat="34.50706765986979" lon="-92.87589116021991"><ele>278.0</ele></trkpt><trkpt lat="34.50709925964475" lon="-92.8758274577558"><ele>278.0</ele></trkpt><trkpt lat="34.507130943238735" lon="-92.87576425820589"><ele>278.0</ele></trkpt><trkpt lat="34.50716245919466" lon="-92.8757029864937"><ele>278.0</ele></trkpt><trkpt lat="34.50719330459833" lon="-92.87564657628536"><ele>278.0</ele></trkpt><trkpt lat="34.50722448527813" lon="-92.87559108808637"><ele>277.20463517342637</ele></trkpt><trkpt lat="34.50725415721536" lon="-92.87553518079221"><ele>277.0</ele></trkpt><trkpt lat="34.507279051467776" lon="-92.87548539228737"><ele>276.83203125046566</ele></trkpt><trkpt lat="34.507296569645405" lon="-92.87544901482761"><ele>276.0</ele></trkpt><trkpt lat="34.50731065124273" lon="-92.87541816942394"><ele>276.0</ele></trkpt><trkpt lat="34.507323391735554" lon="-92.8753908444196"><ele>276.0</ele></trkpt><trkpt lat="34.507328337058425" lon="-92.87537910975516"><ele>276.0</ele></trkpt><trkpt lat="34.507315177470446" lon="-92.87540207616985"><ele>276.0</ele></trkpt><trkpt lat="34.50731014832854" lon="-92.8754101227969"><ele>276.0</ele></trkpt><trkpt lat="34.507306795567274" lon="-92.87541498430073"><ele>276.0</ele></trkpt><trkpt lat="34.50732188299298" lon="-92.87539201788604"><ele>276.0</ele></trkpt><trkpt lat="34.50733789242804" lon="-92.87536385469139"><ele>276.0</ele></trkpt><trkpt lat="34.507364965975285" lon="-92.8753216098994"><ele>275.0</ele></trkpt><trkpt lat="34.50739832594991" lon="-92.8752716537565"><ele>275.0</ele></trkpt><trkpt lat="34.50743721798062" lon="-92.87521909922361"><ele>274.0</ele></trkpt><trkpt lat="34.507480803877115" lon="-92.87516738288105"><ele>274.0</ele></trkpt><trkpt lat="34.50752749107778" lon="-92.87511591799557"><ele>273.0</ele></trkpt><trkpt lat="34.507578453049064" lon="-92.87506210617721"><ele>273.0</ele></trkpt><trkpt lat="34.50762966647744" lon="-92.8750108089298"><ele>273.0</ele></trkpt><trkpt lat="34.50767828151584" lon="-92.87495867349207"><ele>272.33235182470526</ele></trkpt><trkpt lat="34.5077302493155" lon="-92.87491165101528"><ele>272.0</ele></trkpt><trkpt lat="34.50777760706842" lon="-92.87486521527171"><ele>272.0</ele></trkpt><trkpt lat="34.50782203115523" lon="-92.87481836043298"><ele>272.0</ele></trkpt><trkpt lat="34.50786494649947" lon="-92.87477251142263"><ele>272.0</ele></trkpt><trkpt lat="34.50790844857693" lon="-92.87473051808774"><ele>272.0</ele></trkpt><trkpt lat="34.50795195065439" lon="-92.87468743510544"><ele>271.0</ele></trkpt><trkpt lat="34.50799654237926" lon="-92.87464125081897"><ele>271.0</ele></trkpt><trkpt lat="34.50804247520864" lon="-92.87459347397089"><ele>270.6103040001323</ele></trkpt><trkpt lat="34.5080878213048" lon="-92.87454443983734"><ele>270.0</ele></trkpt><trkpt lat="34.50813475996256" lon="-92.8744928073138"><ele>270.0</ele></trkpt><trkpt lat="34.50817884877324" lon="-92.87444301880896"><ele>270.0</ele></trkpt><trkpt lat="34.50822226703167" lon="-92.87438753060997"><ele>269.0</ele></trkpt><trkpt lat="34.50826325453818" lon="-92.87432977929711"><ele>269.0</ele></trkpt><trkpt lat="34.50830281712115" lon="-92.87427236326039"><ele>269.0</ele></trkpt><trkpt lat="34.50834103859961" lon="-92.87421695888042"><ele>269.0</ele></trkpt><trkpt lat="34.50837573967874" lon="-92.87416230887175"><ele>269.8931323025914</ele></trkpt><trkpt lat="34.508404321968555" lon="-92.87411319091916"><ele>270.0</ele></trkpt><trkpt lat="34.508427204564214" lon="-92.87407530471683"><ele>270.0</ele></trkpt><trkpt lat="34.50844346545637" lon="-92.87404814735055"><ele>270.0</ele></trkpt><trkpt lat="34.50845335610211" lon="-92.87403247319162"><ele>270.0</ele></trkpt><trkpt lat="34.508455535396934" lon="-92.87402601912618"><ele>270.0</ele></trkpt><trkpt lat="34.50844991952181" lon="-92.87402668967843"><ele>270.0</ele></trkpt><trkpt lat="34.508452685549855" lon="-92.87403046153486"><ele>270.0</ele></trkpt><trkpt lat="34.50846173800528" lon="-92.8740197326988"><ele>270.0</ele></trkpt><trkpt lat="34.508476071059704" lon="-92.87399835884571"><ele>270.0</ele></trkpt><trkpt lat="34.508495349437" lon="-92.8739697765559"><ele>270.0</ele></trkpt><trkpt lat="34.508521500974894" lon="-92.87393063306808"><ele>270.0</ele></trkpt><trkpt lat="34.50855310074985" lon="-92.87388285622"><ele>270.0</ele></trkpt><trkpt lat="34.50858780182898" lon="-92.87382636219263"><ele>270.0</ele></trkpt><trkpt lat="34.508624682202935" lon="-92.87376693449914"><ele>270.0</ele></trkpt><trkpt lat="34.508658880367875" lon="-92.87371127866209"><ele>270.0</ele></trkpt><trkpt lat="34.50868796557188" lon="-92.87365168333054"><ele>270.0</ele></trkpt><trkpt lat="34.508715625852346" lon="-92.87358596920967"><ele>270.0</ele></trkpt><trkpt lat="34.508745800703764" lon="-92.87351765669882"><ele>270.0</ele></trkpt><trkpt lat="34.50878167524934" lon="-92.87344984710217"><ele>270.0</ele></trkpt><trkpt lat="34.50881922617555" lon="-92.87337684072554"><ele>270.43359374953434</ele></trkpt><trkpt lat="34.508863566443324" lon="-92.87329855374992"><ele>271.0</ele></trkpt><trkpt lat="34.50891385786235" lon="-92.87322403863072"><ele>271.0</ele></trkpt><trkpt lat="34.508964316919446" lon="-92.87314910441637"><ele>272.0</ele></trkpt><trkpt lat="34.50901435688138" lon="-92.87307601422071"><ele>272.0</ele></trkpt><trkpt lat="34.50906800106168" lon="-92.87300795316696"><ele>273.0</ele></trkpt><trkpt lat="34.509121561422944" lon="-92.87294508889318"><ele>273.0</ele></trkpt><trkpt lat="34.50917109847069" lon="-92.87288616411388"><ele>274.0</ele></trkpt><trkpt lat="34.509219881147146" lon="-92.8728227969259"><ele>275.0</ele></trkpt><trkpt lat="34.5092567615211" lon="-92.87275616079569"><ele>275.359375</ele></trkpt><trkpt lat="34.509284337982535" lon="-92.87268692627549"><ele>276.0</ele></trkpt><trkpt lat="34.50931090861559" lon="-92.87262196652591"><ele>276.0</ele></trkpt><trkpt lat="34.509340496733785" lon="-92.87256455048919"><ele>277.0</ele></trkpt><trkpt lat="34.509376119822264" lon="-92.8725067153573"><ele>277.0</ele></trkpt><trkpt lat="34.509418196976185" lon="-92.87245483137667"><ele>277.33426505699754</ele></trkpt><trkpt lat="34.50947234407067" lon="-92.8724171128124"><ele>278.0</ele></trkpt><trkpt lat="34.509529173374176" lon="-92.87238207645714"><ele>278.0</ele></trkpt><trkpt lat="34.50959245674312" lon="-92.87235558964312"><ele>279.0</ele></trkpt><trkpt lat="34.50965917669237" lon="-92.87232834845781"><ele>279.0</ele></trkpt><trkpt lat="34.50972765684128" lon="-92.87229666486382"><ele>279.0</ele></trkpt><trkpt lat="34.509797394275665" lon="-92.87226213142276"><ele>279.7799033410847</ele></trkpt><trkpt lat="34.50986562296748" lon="-92.87222776561975"><ele>280.0</ele></trkpt><trkpt lat="34.509933181107044" lon="-92.87219096906483"><ele>280.0</ele></trkpt><trkpt lat="34.509995793923736" lon="-92.87214528769255"><ele>280.0</ele></trkpt><trkpt lat="34.51005136594176" lon="-92.87209239788353"><ele>280.0</ele></trkpt><trkpt lat="34.510099310427904" lon="-92.87203355692327"><ele>281.0</ele></trkpt><trkpt lat="34.51014356687665" lon="-92.87197303958237"><ele>281.0</ele></trkpt><trkpt lat="34.510179944336414" lon="-92.87191453389823"><ele>281.0</ele></trkpt><trkpt lat="34.51020693406463" lon="-92.87186558358371"><ele>281.9416815303266</ele></trkpt><trkpt lat="34.510224871337414" lon="-92.87183071486652"><ele>282.0</ele></trkpt><trkpt lat="34.51023714636657" lon="-92.87180171348155"><ele>282.0</ele></trkpt><trkpt lat="34.510242976248264" lon="-92.87178117781878"><ele>282.0</ele></trkpt><trkpt lat="34.51025898568332" lon="-92.87175150588155"><ele>282.0</ele></trkpt><trkpt lat="34.51028052717447" lon="-92.87171202711761"><ele>282.0</ele></trkpt><trkpt lat="34.51030584052205" lon="-92.87166366353631"><ele>282.0</ele></trkpt><trkpt lat="34.51033702120185" lon="-92.87161110900342"><ele>282.0828882089472</ele></trkpt><trkpt lat="34.510371554642916" lon="-92.8715550340712"><ele>283.0</ele></trkpt><trkpt lat="34.510407680645585" lon="-92.87149761803448"><ele>283.0</ele></trkpt><trkpt lat="34.51044422574341" lon="-92.87143944762647"><ele>283.0</ele></trkpt><trkpt lat="34.51048546470702" lon="-92.87138102576137"><ele>283.0</ele></trkpt><trkpt lat="34.51053122989833" lon="-92.87132729776204"><ele>283.0</ele></trkpt><trkpt lat="34.510574731975794" lon="-92.87127600051463"><ele>283.0</ele></trkpt><trkpt lat="34.510617563501" lon="-92.87122084759176"><ele>283.0</ele></trkpt><trkpt lat="34.51065964065492" lon="-92.87116938270628"><ele>283.0</ele></trkpt><trkpt lat="34.51070247218013" lon="-92.87112068384886"><ele>284.0</ele></trkpt><trkpt lat="34.51074119657278" lon="-92.871073493734"><ele>284.0</ele></trkpt><trkpt lat="34.510776065289974" lon="-92.87103124894202"><ele>284.0</ele></trkpt><trkpt lat="34.5108094252646" lon="-92.8709921054542"><ele>284.0</ele></trkpt><trkpt lat="34.510841611772776" lon="-92.87095396779478"><ele>284.05684178248003</ele></trkpt><trkpt lat="34.51087455265224" lon="-92.87091214209795"><ele>285.0</ele></trkpt><trkpt lat="34.5109043084085" lon="-92.87086687982082"><ele>285.0</ele></trkpt><trkpt lat="34.51092920266092" lon="-92.87081734277308"><ele>285.0</ele></trkpt><trkpt lat="34.51095124706626" lon="-92.8707613516599"><ele>285.0</ele></trkpt><trkpt lat="34.51097119599581" lon="-92.87070066668093"><ele>285.1652961168438</ele></trkpt><trkpt lat="34.51098972000182" lon="-92.87063545547426"><ele>286.0</ele></trkpt><trkpt lat="34.51100707054138" lon="-92.87056387402117"><ele>286.0</ele></trkpt><trkpt lat="34.511023331433535" lon="-92.87048659287393"><ele>286.0</ele></trkpt><trkpt lat="34.51104353182018" lon="-92.8704119939357"><ele>286.0</ele></trkpt><trkpt lat="34.51107018627226" lon="-92.87034083157778"><ele>286.0</ele></trkpt><trkpt lat="34.51109700836241" lon="-92.87027134560049"><ele>286.0</ele></trkpt><trkpt lat="34.51113011687994" lon="-92.87020563147962"><ele>286.0</ele></trkpt><trkpt lat="34.51116825453937" lon="-92.87014327012002"><ele>286.0</ele></trkpt><trkpt lat="34.51121234335005" lon="-92.87008501589298"><ele>286.0</ele></trkpt><trkpt lat="34.51125601306558" lon="-92.87002868950367"><ele>286.0</ele></trkpt><trkpt lat="34.51129959896207" lon="-92.86997253075242"><ele>286.0</ele></trkpt><trkpt lat="34.51134704053402" lon="-92.86991779692471"><ele>286.0</ele></trkpt><trkpt lat="34.51139733195305" lon="-92.86986717022955"><ele>285.00286709833745</ele></trkpt><trkpt lat="34.51144619844854" lon="-92.86982266232371"><ele>285.0</ele></trkpt><trkpt lat="34.511495819315314" lon="-92.86978083662689"><ele>285.0</ele></trkpt><trkpt lat="34.51154317706823" lon="-92.86973398178816"><ele>284.0</ele></trkpt><trkpt lat="34.51158198527992" lon="-92.86968050524592"><ele>284.0</ele></trkpt><trkpt lat="34.51161442324519" lon="-92.869619904086"><ele>284.0</ele></trkpt><trkpt lat="34.511639485135674" lon="-92.86955745890737"><ele>284.0</ele></trkpt><trkpt lat="34.51166220009327" lon="-92.86949459463358"><ele>284.0</ele></trkpt><trkpt lat="34.51168877072632" lon="-92.8694383520633"><ele>284.0</ele></trkpt><trkpt lat="34.51171986758709" lon="-92.8693883959204"><ele>284.0</ele></trkpt><trkpt lat="34.511747444048524" lon="-92.86934606730938"><ele>283.0</ele></trkpt><trkpt lat="34.51177527196705" lon="-92.86930407397449"><ele>283.0</ele></trkpt><trkpt lat="34.51180594973266" lon="-92.86926342174411"><ele>283.0</ele></trkpt><trkpt lat="34.51183972880244" lon="-92.86922302097082"><ele>283.0</ele></trkpt><trkpt lat="34.51187032274902" lon="-92.86918773315847"><ele>282.33984375046566</ele></trkpt><trkpt lat="34.51189856976271" lon="-92.86915680393577"><ele>282.0</ele></trkpt><trkpt lat="34.51192690059543" lon="-92.86912478506565"><ele>282.0</ele></trkpt><trkpt lat="34.511951711028814" lon="-92.86909863352776"><ele>281.07126754330477</ele></trkpt><trkpt lat="34.51197509653866" lon="-92.86907675676048"><ele>281.0</ele></trkpt><trkpt lat="34.512000577524304" lon="-92.86905135959387"><ele>280.0</ele></trkpt><trkpt lat="34.51203024946153" lon="-92.86903115920722"><ele>280.0</ele></trkpt><trkpt lat="34.512060256674886" lon="-92.86902386695147"><ele>280.0</ele></trkpt><trkpt lat="34.512089509516954" lon="-92.86902604624629"><ele>280.0</ele></trkpt><trkpt lat="34.51211356557906" lon="-92.86903685890138"><ele>280.0</ele></trkpt><trkpt lat="34.51214306987822" lon="-92.8690583165735"><ele>280.0</ele></trkpt><trkpt lat="34.51218162663281" lon="-92.8690826240927"><ele>279.1663002625646</ele></trkpt><trkpt lat="34.51223501935601" lon="-92.86909896880388"><ele>279.0</ele></trkpt><trkpt lat="34.51228958554566" lon="-92.86910223774612"><ele>278.0</ele></trkpt><trkpt lat="34.512351276353" lon="-92.8690995555371"><ele>277.0</ele></trkpt><trkpt lat="34.512414056807756" lon="-92.86908572539687"><ele>277.0</ele></trkpt><trkpt lat="34.51247499324381" lon="-92.86906871013343"><ele>276.0</ele></trkpt><trkpt lat="34.51253735460341" lon="-92.86905068904161"><ele>276.0</ele></trkpt><trkpt lat="34.51259829103947" lon="-92.86903342232108"><ele>276.0</ele></trkpt><trkpt lat="34.51265076175332" lon="-92.86901732906699"><ele>275.0</ele></trkpt><trkpt lat="34.512698370963335" lon="-92.86900484003127"><ele>275.0</ele></trkpt><trkpt lat="34.5127381850034" lon="-92.86899033933878"><ele>275.0</ele></trkpt><trkpt lat="34.51276500709355" lon="-92.86898262798786"><ele>275.0</ele></trkpt><trkpt lat="34.512786800041795" lon="-92.86897617392242"><ele>274.5582799866576</ele></trkpt><trkpt lat="34.51278733355692" lon="-92.86897604054364"><ele>274.53713100707785</ele></trkpt></trkseg></trk><trk><name>Broken Leg Trail</name><trkseg><trkpt lat="34.51111199485497" lon="-92.87992308935594"><ele>194.0</ele></trkpt><trkpt lat="34.51073055155575" lon="-92.87958640605211"><ele>198.05</ele></trkpt><trkpt lat="34.51023526489735" lon="-92.8794214501977"><ele>198.4</ele></trkpt><trkpt lat="34.50968767516315" lon="-92.87948473356664"><ele>204.43</ele></trkpt><trkpt lat="34.50927780009806" lon="-92.87932732142508"><ele>210.0</ele></trkpt><trkpt lat="34.50892483815551" lon="-92.87874528206885"><ele>217.0</ele></trkpt><trkpt lat="34.50869877822697" lon="-92.87805955857038"><ele>234.0</ele></trkpt><trkpt lat="34.508517226204276" lon="-92.87758665159345"><ele>243.0</ele></trkpt><trkpt lat="34.50802210718393" lon="-92.87703671492636"><ele>255.0</ele></trkpt><trkpt lat="34.507593708112836" lon="-92.87661594338715"><ele>265.0</ele></trkpt><trkpt lat="34.507196908816695" lon="-92.87624328397214"><ele>274.25</ele></trkpt><trkpt lat="34.50703631390827" lon="-92.87610365030352"><ele>277.13</ele></trkpt></trkseg></trk><trk><name>171 Main Road</name><trkseg><trkpt lat="34.511096178926884" lon="-92.87027219020474"><ele>286.0</ele></trkpt><trkpt lat="34.51083985157311" lon="-92.86980539560318"><ele>273.74</ele></trkpt><trkpt lat="34.51142222620547" lon="-92.86877106875181"><ele>266.97</ele></trkpt><trkpt lat="34.51182237826288" lon="-92.86776096560061"><ele>249.89</ele></trkpt><trkpt lat="34.511898485943675" lon="-92.86703366786242"><ele>232.98</ele></trkpt><trkpt lat="34.51161140576005" lon="-92.86640527658165"><ele>217.0</ele></trkpt><trkpt lat="34.51110044494271" lon="-92.86587780341506"><ele>204.0</ele></trkpt><trkpt lat="34.51086139306426" lon="-92.86526198498905"><ele>198.0</ele></trkpt><trkpt lat="34.510095957666636" lon="-92.86475370638072"><ele>192.0</ele></trkpt><trkpt lat="34.50938366353512" lon="-92.8641574177891"><ele>190.0</ele></trkpt><trkpt lat="34.50881729833782" lon="-92.86369213834405"><ele>179.5</ele></trkpt><trkpt lat="34.50843499973416" lon="-92.86328452639282"><ele>174.0</ele></trkpt><trkpt lat="34.50778699479997" lon="-92.86344587802887"><ele>172.0</ele></trkpt><trkpt lat="34.50681938789785" lon="-92.86387318745255"><ele>165.0</ele></trkpt><trkpt lat="34.506182530894876" lon="-92.8633893840015"><ele>160.0</ele></trkpt><trkpt lat="34.505173014476895" lon="-92.86331746727228"><ele>156.25</ele></trkpt><trkpt lat="34.50400575064123" lon="-92.8631798364222"><ele>153.0</ele></trkpt><trkpt lat="34.502555849030614" lon="-92.86316516809165"><ele>157.08</ele></trkpt><trkpt lat="34.50116871065719" lon="-92.86312315497975"><ele>168.0</ele></trkpt></trkseg></trk><trk><name>Southwest Trail</name><trkseg><trkpt lat="34.50517194566778" lon="-92.87375687800974"><ele>194.0</ele></trkpt><trkpt lat="34.505260940641165" lon="-92.87321330979466"><ele>188.0</ele></trkpt><trkpt lat="34.505500411614776" lon="-92.87280041724443"><ele>184.0</ele></trkpt><trkpt lat="34.50574357062578" lon="-92.87229959852993"><ele>186.52</ele></trkpt><trkpt lat="34.50604699552059" lon="-92.87179316394031"><ele>184.24</ele></trkpt><trkpt lat="34.50638419948518" lon="-92.87147012539208"><ele>186.75</ele></trkpt><trkpt lat="34.506727354601026" lon="-92.87105580791831"><ele>192.0</ele></trkpt><trkpt lat="34.50669684447348" lon="-92.87060134112835"><ele>187.0</ele></trkpt><trkpt lat="34.506593914702535" lon="-92.87021485157311"><ele>180.0</ele></trkpt><trkpt lat="34.50673188082874" lon="-92.86975158378482"><ele>182.64</ele></trkpt><trkpt lat="34.50683581910977" lon="-92.86926652147615"><ele>185.3</ele></trkpt></trkseg></trk><trk><name>171 Inner Loop</name><trkseg><trkpt lat="34.51106012062115" lon="-92.86588117355113"><ele>204.0</ele></trkpt><trkpt lat="34.510730635374784" lon="-92.8662835713476"><ele>201.56</ele></trkpt><trkpt lat="34.51028999872506" lon="-92.8668822068721"><ele>201.0</ele></trkpt><trkpt lat="34.50975313782692" lon="-92.8674387652427"><ele>197.0</ele></trkpt><trkpt lat="34.50922650285065" lon="-92.86813169717789"><ele>200.0</ele></trkpt><trkpt lat="34.508764911442995" lon="-92.86827427335083"><ele>196.0</ele></trkpt><trkpt lat="34.508330058306456" lon="-92.8679361473769"><ele>191.0</ele></trkpt><trkpt lat="34.507694374769926" lon="-92.86760807968676"><ele>188.0</ele></trkpt><trkpt lat="34.507039077579975" lon="-92.86742443218827"><ele>181.78</ele></trkpt><trkpt lat="34.50642912648618" lon="-92.86758368834853"><ele>172.71</ele></trkpt><trkpt lat="34.505892684683204" lon="-92.8673468157649"><ele>169.0</ele></trkpt><trkpt lat="34.505446096882224" lon="-92.86677852272987"><ele>167.0</ele></trkpt><trkpt lat="34.50520981103182" lon="-92.86607620306313"><ele>160.0</ele></trkpt><trkpt lat="34.505350794643164" lon="-92.8655494004488"><ele>163.31</ele></trkpt><trkpt lat="34.50506949797273" lon="-92.86501362919807"><ele>163.4</ele></trkpt><trkpt lat="34.5048120059073" lon="-92.86431198008358"><ele>159.0</ele></trkpt><trkpt lat="34.504912504926324" lon="-92.86358593963087"><ele>155.0</ele></trkpt><trkpt lat="34.50482381625789" lon="-92.86321227793509"><ele>154.0</ele></trkpt></trkseg></trk><trk><name>171 Outer Loop</name><trkseg><trkpt lat="34.50911267739744" lon="-92.86831183550285"><ele>200.0</ele></trkpt><trkpt lat="34.50893187895417" lon="-92.8689444065094"><ele>197.0</ele></trkpt><trkpt lat="34.50853449292481" lon="-92.86948839202523"><ele>196.0</ele></trkpt><trkpt lat="34.508094945922494" lon="-92.86982769146562"><ele>199.0</ele></trkpt><trkpt lat="34.50753243640065" lon="-92.8696561139077"><ele>192.12</ele></trkpt><trkpt lat="34.506926257163286" lon="-92.86928177811205"><ele>186.83</ele></trkpt><trkpt lat="34.50644086115062" lon="-92.86913509480655"><ele>182.0</ele></trkpt><trkpt lat="34.50603945180774" lon="-92.86869605071843"><ele>174.57</ele></trkpt><trkpt lat="34.50597499497235" lon="-92.86830369383097"><ele>168.0</ele></trkpt><trkpt lat="34.50586024671793" lon="-92.86773079074919"><ele>166.0</ele></trkpt><trkpt lat="34.505919685408244" lon="-92.86737357966314"><ele>169.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Cutoff</name><trkseg><trkpt lat="34.51181384210675" lon="-92.8678691284867"><ele>252.98</ele></trkpt><trkpt lat="34.5119350310415" lon="-92.86819757893682"><ele>260.2</ele></trkpt><trkpt lat="34.51211021281779" lon="-92.86860158666968"><ele>271.02</ele></trkpt><trkpt lat="34.51210229027073" lon="-92.86903120055628"><ele>280.0</ele></trkpt></trkseg></trk><trk><name>Big Ridge Northeast</name><trkseg><trkpt lat="34.51278935144348" lon="-92.86897613441988"><ele>274.48</ele></trkpt><trkpt lat="34.51332340948284" lon="-92.86877970211208"><ele>272.0</ele></trkpt><trkpt lat="34.513852559030056" lon="-92.86824275739491"><ele>261.26</ele></trkpt><trkpt lat="34.5142369531095" lon="-92.8676282800734"><ele>258.0</ele></trkpt><trkpt lat="34.51460089534521" lon="-92.86670501343906"><ele>267.0</ele></trkpt><trkpt lat="34.514972968026996" lon="-92.86556733772159"><ele>276.0</ele></trkpt><trkpt lat="34.5155821647495" lon="-92.86478321067989"><ele>278.0</ele></trkpt><trkpt lat="34.51604115776718" lon="-92.86397444084287"><ele>269.0</ele></trkpt><trkpt lat="34.51670944690704" lon="-92.86358384415507"><ele>260.0</ele></trkpt><trkpt lat="34.51708738692105" lon="-92.86322920583189"><ele>258.0</ele></trkpt><trkpt lat="34.51757789589465" lon="-92.86237668246031"><ele>263.0</ele></trkpt><trkpt lat="34.51814979314804" lon="-92.86080138757825"><ele>260.0</ele></trkpt><trkpt lat="34.5188788510859" lon="-92.85979304462671"><ele>259.0</ele></trkpt><trkpt lat="34.51978728175163" lon="-92.85890841856599"><ele>253.0</ele></trkpt><trkpt lat="34.52027393504977" lon="-92.85793997347355"><ele>255.0</ele></trkpt><trkpt lat="34.52076888643205" lon="-92.85721351392567"><ele>249.0</ele></trkpt><trkpt lat="34.52156885527074" lon="-92.85652209073305"><ele>247.0</ele></trkpt><trkpt lat="34.5222876034677" lon="-92.85555498674512"><ele>243.0</ele></trkpt><trkpt lat="34.5223515573889" lon="-92.85456189885736"><ele>247.0</ele></trkpt><trkpt lat="34.52179944142699" lon="-92.85420399159193"><ele>251.0</ele></trkpt><trkpt lat="34.52175920829177" lon="-92.85333235748112"><ele>249.0</ele></trkpt><trkpt lat="34.52208073809743" lon="-92.85226668231189"><ele>244.0</ele></trkpt><trkpt lat="34.522646348923445" lon="-92.85162203013897"><ele>239.0</ele></trkpt><trkpt lat="34.52317683957517" lon="-92.85062843933702"><ele>235.0</ele></trkpt><trkpt lat="34.52365418896079" lon="-92.84963241778314"><ele>232.0</ele></trkpt><trkpt lat="34.52391000947514" lon="-92.84889617787552"><ele>232.0</ele></trkpt></trkseg></trk><trk><name>Dollhouse Road</name><trkseg><trkpt lat="34.52509734073826" lon="-92.85133110635834"><ele>220.87</ele></trkpt><trkpt lat="34.52483067288995" lon="-92.85151239484549"><ele>227.57</ele></trkpt><trkpt lat="34.52449657022953" lon="-92.85171079449356"><ele>233.0</ele></trkpt><trkpt lat="34.5241854339838" lon="-92.8521538618952"><ele>237.43</ele></trkpt><trkpt lat="34.52374119311571" lon="-92.85234488546848"><ele>238.18</ele></trkpt><trkpt lat="34.52348361723125" lon="-92.85293262451887"><ele>241.1</ele></trkpt><trkpt lat="34.52320609241724" lon="-92.85347778350115"><ele>245.0</ele></trkpt><trkpt lat="34.52291574329138" lon="-92.85389947704971"><ele>244.0</ele></trkpt><trkpt lat="34.52267166227102" lon="-92.85431312397122"><ele>245.0</ele></trkpt><trkpt lat="34.5223857924866" lon="-92.85461808886738"><ele>248.0</ele></trkpt></trkseg></trk><trk><name>Turkey Road Extension</name><trkseg><trkpt lat="34.517044592579886" lon="-92.86326991092444"><ele>258.0</ele></trkpt><trkpt lat="34.51695076189935" lon="-92.8635685890913"><ele>257.83</ele></trkpt><trkpt lat="34.517097026109695" lon="-92.86385022103786"><ele>252.0</ele></trkpt><trkpt lat="34.517223509028554" lon="-92.86393814720213"><ele>249.07</ele></trkpt><trkpt lat="34.51723599806428" lon="-92.86418063566089"><ele>246.0</ele></trkpt><trkpt lat="34.51721747405827" lon="-92.86448598839343"><ele>243.9</ele></trkpt><trkpt lat="34.51712544076145" lon="-92.86478564143181"><ele>242.62</ele></trkpt><trkpt lat="34.517216300591826" lon="-92.86507515236735"><ele>239.62</ele></trkpt><trkpt lat="34.51748225837946" lon="-92.86546105518937"><ele>234.86</ele></trkpt><trkpt lat="34.51778995804489" lon="-92.86588777787983"><ele>226.0</ele></trkpt><trkpt lat="34.51809447258711" lon="-92.86615868099034"><ele>215.99</ele></trkpt><trkpt lat="34.51833453029394" lon="-92.86661272868514"><ele>205.25</ele></trkpt><trkpt lat="34.51862651056008" lon="-92.86718926490875"><ele>197.0</ele></trkpt></trkseg></trk><trk><name>Middle Ridge North</name><trkseg><trkpt lat="34.51617475149845" lon="-92.87411676563126"><ele>229.0</ele></trkpt><trkpt lat="34.5164386687876" lon="-92.87377623841166"><ele>226.0</ele></trkpt><trkpt lat="34.516687501231694" lon="-92.8732823766768"><ele>223.09</ele></trkpt><trkpt lat="34.51698152348399" lon="-92.87296981550753"><ele>225.0</ele></trkpt><trkpt lat="34.51777118258178" lon="-92.87195024080575"><ele>220.0</ele></trkpt><trkpt lat="34.51826244590763" lon="-92.87187142983032"><ele>222.0</ele></trkpt></trkseg></trk><trk><name>Tony's Road</name><trkseg><trkpt lat="34.51939358662317" lon="-92.87588472441541"><ele>180.0</ele></trkpt><trkpt lat="34.51908244751394" lon="-92.87581061013043"><ele>184.0</ele></trkpt><trkpt lat="34.518763264641166" lon="-92.87571321241558"><ele>192.0</ele></trkpt><trkpt lat="34.518365543335676" lon="-92.87562084384263"><ele>199.0</ele></trkpt><trkpt lat="34.51791585423052" lon="-92.87535010837018"><ele>207.5</ele></trkpt><trkpt lat="34.51746080070734" lon="-92.8752074483782"><ele>217.82</ele></trkpt><trkpt lat="34.516969537362456" lon="-92.87513880059123"><ele>226.0</ele></trkpt><trkpt lat="34.51649369671941" lon="-92.87480779923499"><ele>227.0</ele></trkpt><trkpt lat="34.51624006032944" lon="-92.87445056252182"><ele>230.0</ele></trkpt><trkpt lat="34.51617475149845" lon="-92.87411676563126"><ele>229.0</ele></trkpt><trkpt lat="34.51590637676418" lon="-92.87393306382"><ele>223.0</ele></trkpt><trkpt lat="34.51552676036954" lon="-92.87360558286309"><ele>214.0</ele></trkpt><trkpt lat="34.515028204768896" lon="-92.87347180768847"><ele>208.0</ele></trkpt><trkpt lat="34.514468935129315" lon="-92.87346661728625"><ele>211.0</ele></trkpt></trkseg></trk><trk><name>Bear Den Road</name><trkseg><trkpt lat="34.516351510202384" lon="-92.87177965431316"><ele>198.0</ele></trkpt><trkpt lat="34.51611869037151" lon="-92.87136820144951"><ele>200.7</ele></trkpt><trkpt lat="34.515679562464356" lon="-92.87136451341212"><ele>206.42</ele></trkpt><trkpt lat="34.51525895856321" lon="-92.87120676599443"><ele>214.0</ele></trkpt><trkpt lat="34.5148656796664" lon="-92.87094919010997"><ele>226.82</ele></trkpt><trkpt lat="34.51446351595223" lon="-92.87047812715173"><ele>244.67</ele></trkpt><trkpt lat="34.51406520791352" lon="-92.86997026763856"><ele>257.0</ele></trkpt><trkpt lat="34.51368810608983" lon="-92.86962174810469"><ele>267.0</ele></trkpt><trkpt lat="34.513187538832426" lon="-92.86964907310903"><ele>268.16</ele></trkpt><trkpt lat="34.51289165765047" lon="-92.86917524412274"><ele>274.0</ele></trkpt><trkpt lat="34.51278358967955" lon="-92.86897941915579"><ele>274.75</ele></trkpt></trkseg></trk></gpx></script>
+
+    <!-- ===================================================================== -->
+    <!-- MAIN APPLICATION ENGINE                                               -->
+    <!-- ===================================================================== -->
+    <script>
+      // =========================================================================
+      // 1. GLOBAL STATE, DEFAULT ORIENTATION & PALETTE CONFIGURATION
+      // =========================================================================
+      const METERS_TO_FEET = 3.28084;
+      const METERS_TO_MILES = 0.000621371;
+
+      const DEFAULT_VIEW = {
+        theta: Math.PI, // South pointing upward
+        phi: 0.88,
+        radius: 315,
+        bearing: 180,
+        pitch: 58
+      };
+
+      const TIER_CONFIG = {
+        main: {
+          label: 'Main Road',
+          colorHex: '#FBBF24',
+          colorInt: 0xfbbf24,
+          rgba: 'rgba(251,191,36,0.40)',
+          radius: 0.78
+        },
+        secondary: {
+          label: 'ATV / Secondary',
+          colorHex: '#F97316',
+          colorInt: 0xf97316,
+          rgba: 'rgba(249,115,22,0.40)',
+          radius: 0.54
+        }
+      };
+
+      const SELECTED_ROUTE_HEX = '#38BDF8';
+      const SELECTED_ROUTE_INT = 0x38bdf8;
+
+      const state = {
+        renderMode: 'diorama', // 'diorama' | 'satellite'
+        surfaceStyle: 'hybrid', // 'hybrid' | 'topo'
+        exaggeration: 1.8,
+        layers: { main: true, secondary: true, waypoints: true, roadLabels: true },
+        gpxData: null,
+        selectedItem: null,
+        isRealDataLoaded: false
+      };
+
+      function classifyTrackTier(name) {
+        const lower = (name || '').toLowerCase();
+        if (
+          lower.includes('shop road') ||
+          lower.includes('big valley') ||
+          lower.includes('171 main') ||
+          lower.includes('big ridge northeast') ||
+          lower.includes('big ridge southwest') ||
+          lower === 'turkey road'
+        ) {
+          return 'main';
+        }
+        return 'secondary';
+      }
+
+      function getWaypointCategory(name) {
+        const lower = (name || '').toLowerCase();
+        if (lower.includes('bear')) return 'bear';
+        if (lower.includes('gate')) return 'gate';
+        if (lower === 'shop' || lower.includes('cabin') || lower.includes('camp')) return 'shop';
+        if (lower.includes('stand') || lower.includes('dollhouse')) return 'stand';
+        return 'landmark';
+      }
+
+      function getWaypointBadgeSVG(category) {
+        if (category === 'bear') {
+          return `<svg class="w-3.5 h-3.5 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="currentColor"><circle cx="6.2" cy="6.2" r="2.7"/><circle cx="17.8" cy="6.2" r="2.7"/><path d="M12 4.5c-4.4 0-7.8 3.2-7.8 7.5 0 4.5 3.3 7.8 7.8 7.8s7.8-3.3 7.8-7.8c0-4.3-3.4-7.5-7.8-7.5zm-2.8 6.3a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm5.6 0a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm-2.8 6.4c-1.8 0-3.1-1.1-3.1-2.5 0-1.3 1.3-2.3 3.1-2.3s3.1 1 3.1 2.3c0 1.4-1.3 2.5-3.1 2.5z"/></svg>`;
+        }
+        if (category === 'stand') {
+          return `<svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14l-1.5 6h-11z"/><path d="M7.5 10L5 21"/><path d="M16.5 10L19 21"/><path d="M6.3 15.5h11.4"/><path d="M9.5 6.5h5"/></svg>`;
+        }
+        if (category === 'gate') {
+          return `<svg class="w-3.5 h-3.5 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16"/><path d="M4 8h16v3H4z"/><path d="M4 15l6-4"/></svg>`;
+        }
+        if (category === 'shop') {
+          return `<svg class="w-3.5 h-3.5 text-slate-100 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13L12 3.5 21.5 13"/><path d="M6 9.8V20h12V9.8"/><path d="M9.5 20v-5.5h5V20"/></svg>`;
+        }
+        return `<span class="w-2 h-2 rounded-full bg-sky-400 inline-block shrink-0"></span>`;
+      }
+
+      // =========================================================================
+      // 2. GPX PARSER & GEODESIC MATH
+      // =========================================================================
+      function haversineMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = d => (d * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function parseGPXString(xmlText) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlText, 'application/xml');
+        if (doc.querySelector('parsererror')) {
+          throw new Error('Invalid GPX XML format.');
+        }
+
+        const metaName = doc.querySelector('metadata > name')?.textContent?.trim() || "Tony's Land";
+        const waypoints = [];
+        doc.querySelectorAll('wpt').forEach((wpt, idx) => {
+          const lat = parseFloat(wpt.getAttribute('lat'));
+          const lon = parseFloat(wpt.getAttribute('lon'));
+          const ele = parseFloat(wpt.querySelector('ele')?.textContent || 'NaN');
+          const name = wpt.querySelector('name')?.textContent?.trim() || `Waypoint ${idx + 1}`;
+          if (!isNaN(lat) && !isNaN(lon)) {
+            waypoints.push({
+              id: `wpt-${idx}`,
+              name,
+              lat,
+              lon,
+              ele: isNaN(ele) ? null : ele,
+              category: getWaypointCategory(name)
+            });
+          }
+        });
+
+        const tracks = [];
+        doc.querySelectorAll('trk').forEach((trk, tIdx) => {
+          const name = trk.querySelector('name')?.textContent?.trim() || `Trail ${tIdx + 1}`;
+          const tier = classifyTrackTier(name);
+          const points = [];
+          let cumDist = 0;
+          let gain = 0;
+          let loss = 0;
+          let minEle = Infinity;
+          let maxEle = -Infinity;
+
+          trk.querySelectorAll('trkpt').forEach(pt => {
+            const lat = parseFloat(pt.getAttribute('lat'));
+            const lon = parseFloat(pt.getAttribute('lon'));
+            const ele = parseFloat(pt.querySelector('ele')?.textContent || '200');
+            if (!isNaN(lat) && !isNaN(lon)) {
+              if (points.length > 0) {
+                const prev = points[points.length - 1];
+                cumDist += haversineMeters(prev.lat, prev.lon, lat, lon);
+                const dEle = ele - prev.ele;
+                if (dEle > 0.3) gain += dEle;
+                else if (dEle < -0.3) loss += Math.abs(dEle);
+              }
+              if (ele < minEle) minEle = ele;
+              if (ele > maxEle) maxEle = ele;
+              points.push({ lat, lon, ele, dist: cumDist });
+            }
+          });
+
+          if (points.length > 1) {
+            tracks.push({
+              id: `trk-${tIdx}`,
+              name,
+              tier,
+              points,
+              totalDist: cumDist,
+              gain,
+              loss,
+              minEle: minEle === Infinity ? 180 : minEle,
+              maxEle: maxEle === -Infinity ? 260 : maxEle
+            });
+          }
+        });
+
+        let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+        let globalMinEle = Infinity, globalMaxEle = -Infinity;
+
+        tracks.forEach(t => {
+          t.points.forEach(p => {
+            if (p.lat < minLat) minLat = p.lat;
+            if (p.lat > maxLat) maxLat = p.lat;
+            if (p.lon < minLon) minLon = p.lon;
+            if (p.lon > maxLon) maxLon = p.lon;
+            if (p.ele < globalMinEle) globalMinEle = p.ele;
+            if (p.ele > globalMaxEle) globalMaxEle = p.ele;
+          });
+        });
+
+        waypoints.forEach(w => {
+          if (w.lat < minLat) minLat = w.lat;
+          if (w.lat > maxLat) maxLat = w.lat;
+          if (w.lon < minLon) minLon = w.lon;
+          if (w.lon > maxLon) maxLon = w.lon;
+        });
+
+        const latPad = Math.max((maxLat - minLat) * 0.14, 0.0025);
+        const lonPad = Math.max((maxLon - minLon) * 0.14, 0.0025);
+        minLat -= latPad;
+        maxLat += latPad;
+        minLon -= lonPad;
+        maxLon += lonPad;
+
+        return {
+          title: metaName,
+          tracks,
+          waypoints,
+          bounds: {
+            minLat, maxLat, minLon, maxLon,
+            centerLat: (minLat + maxLat) / 2,
+            centerLon: (minLon + maxLon) / 2,
+            minEle: globalMinEle === Infinity ? 150 : globalMinEle,
+            maxEle: globalMaxEle === -Infinity ? 290 : globalMaxEle
+          }
+        };
+      }
+
+      function handleGPXFileUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async e => {
+          try {
+            const parsed = parseGPXString(e.target.result);
+            state.gpxData = parsed;
+            state.selectedItem = null;
+            state.isRealDataLoaded = false;
+            window._cachedSatelliteCanvas = null;
+
+            const totalMiles = parsed.tracks
+              .reduce((sum, t) => sum + (t.totalDist || 0) * METERS_TO_MILES, 0)
+              .toFixed(2);
+            const standCount = parsed.waypoints.filter(w => w.category === 'stand').length;
+            document.getElementById('map-title').textContent = parsed.title;
+            document.getElementById('map-subtitle').textContent =
+              `${parsed.tracks.length} Tracks • ${standCount} Stands • ${totalMiles} mi`;
+            const wptSub = document.getElementById('wpt-layer-subtitle');
+            if (wptSub) wptSub.textContent = `${parsed.waypoints.length} Waypoints & Labels`;
+
+            document.getElementById('inspector-drawer').classList.add('hidden');
+            populateDropdown();
+            await buildTerrainFromGPX(parsed);
+            if (maplibreMap) syncMapLibreData();
+          } catch (err) {
+            console.error('GPX load error:', err);
+            setStatusBadge('Invalid GPX', 'bg-rose-500/20 text-rose-300 border-rose-400/30');
+          } finally {
+            event.target.value = '';
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // =========================================================================
+      // 3. THREE.JS 3D RELIEF DIORAMA ENGINE
+      // =========================================================================
+      let scene, camera, renderer, dioramaGroup, terrainMesh, skirtMesh, basePlinthMesh;
+      let roadMeshes = [];
+      let routeLabelMesh = null;
+      let routeLabelTexture = null;
+      let waypointMeshes = [];
+      let scrubMarkerMesh = null;
+      let raycaster = null;
+      let pointer = null;
+
+      const BLOCK_SIZE = 240;
+      const GRID_RES = 128;
+      let elevationGrid = new Float32Array((GRID_RES + 1) * (GRID_RES + 1));
+      let blockWidth = BLOCK_SIZE;
+      let blockDepth = BLOCK_SIZE;
+      let metersPerWorldUnit = 13.5;
+      let activeTexture = null;
+      let autoRotate = false;
+      let lastLabelOrientQuadrant = null;
+
+      const orbit = {
+        theta: DEFAULT_VIEW.theta,
+        phi: DEFAULT_VIEW.phi,
+        radius: DEFAULT_VIEW.radius,
+        target: null,
+        isDragging: false,
+        dragMode: 'rotate',
+        prevX: 0,
+        prevY: 0,
+        downX: 0,
+        downY: 0,
+        velTheta: 0,
+        velPhi: 0,
+        isTouchActive: false,
+        lastPinchDist: 0,
+        lastPinchMidX: 0,
+        lastPinchMidY: 0
+      };
+
+      function ensureThreeLoaded() {
+        if (typeof window.THREE !== 'undefined') return Promise.resolve();
+        const urls = [
+          'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+          'https://unpkg.com/three@0.128.0/build/three.min.js',
+          'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'
+        ];
+        return new Promise((resolve, reject) => {
+          let i = 0;
+          const tryNext = () => {
+            if (typeof window.THREE !== 'undefined') return resolve();
+            if (i >= urls.length) return reject(new Error('Failed to load Three.js'));
+            const s = document.createElement('script');
+            s.src = urls[i++];
+            s.onload = () => resolve();
+            s.onerror = tryNext;
+            document.head.appendChild(s);
+          };
+          tryNext();
+        });
+      }
+
+      function hasWebGLSupport() {
+        try {
+          const canvas = document.createElement('canvas');
+          return !!(
+            window.WebGLRenderingContext &&
+            (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+          );
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function renderMobile2DFallbackMap(badgeText = '2D Relief Map') {
+        const container = document.getElementById('three-container');
+        if (!container || !state.gpxData) return;
+        let canvas = document.getElementById('mobile-2d-fallback-canvas');
+        if (!canvas) {
+          container.innerHTML = '';
+          canvas = document.createElement('canvas');
+          canvas.id = 'mobile-2d-fallback-canvas';
+          canvas.className = 'w-full h-full block';
+          container.appendChild(canvas);
+        }
+        const w = container.clientWidth || window.innerWidth;
+        const h = container.clientHeight || window.innerHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(w * dpr));
+        canvas.height = Math.max(1, Math.round(h * dpr));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = '#0b0f0d';
+        ctx.fillRect(0, 0, w, h);
+
+        const pad = 28;
+        const availW = Math.max(80, w - pad * 2);
+        const availH = Math.max(80, h - pad * 2 - 40);
+        const aspect = blockWidth / Math.max(blockDepth, 1);
+        let drawW = availW;
+        let drawH = drawW / aspect;
+        if (drawH > availH) {
+          drawH = availH;
+          drawW = drawH * aspect;
+        }
+        const ox = (w - drawW) * 0.5;
+        const oy = (h - drawH) * 0.5 + 16;
+
+        const baseCanvas =
+          state.isRealDataLoaded && state.surfaceStyle === 'hybrid' && window._cachedSatelliteCanvas
+            ? window._cachedSatelliteCanvas
+            : generateProceduralTextureCanvas(state.gpxData, state.surfaceStyle);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(ox, oy, drawW, drawH, 16);
+        ctx.clip();
+        ctx.drawImage(baseCanvas, ox, oy, drawW, drawH);
+
+        const { minLat, maxLat, minLon, maxLon } = state.gpxData.bounds;
+        const toXY = (lat, lon) => ({
+          x: ox + ((lon - minLon) / Math.max(maxLon - minLon, 1e-6)) * drawW,
+          y: oy + ((maxLat - lat) / Math.max(maxLat - minLat, 1e-6)) * drawH
+        });
+
+        state.gpxData.tracks.forEach(t => {
+          if (!state.layers[t.tier] || t.points.length < 2) return;
+          const cfg = TIER_CONFIG[t.tier] || TIER_CONFIG.secondary;
+          const isSel = state.selectedItem?.type === 'track' && state.selectedItem.data.id === t.id;
+          ctx.strokeStyle = 'rgba(7, 11, 9, 0.85)';
+          ctx.lineWidth = isSel ? 6 : 4.2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          t.points.forEach((p, idx) => {
+            const pt = toXY(p.lat, p.lon);
+            if (idx === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          });
+          ctx.stroke();
+
+          ctx.strokeStyle = isSel ? SELECTED_ROUTE_HEX : cfg.colorHex;
+          ctx.lineWidth = isSel ? 3.8 : 2.5;
+          ctx.stroke();
+        });
+
+        if (state.layers.waypoints) {
+          state.gpxData.waypoints.forEach(wpt => {
+            const pt = toXY(wpt.lat, wpt.lon);
+            ctx.fillStyle = '#10b981';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          });
+        }
+        ctx.restore();
+        setStatusBadge(badgeText, 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30');
+      }
+
+      function syncCompassRotation() {
+        const dial = document.getElementById('compass-dial');
+        if (!dial) return;
+        let deg = 0;
+        if ((state.renderMode === 'satellite' || state.renderMode === 'satellite2d') && maplibreMap) {
+          deg = -(maplibreMap.getBearing() || 0);
+        } else {
+          deg = (orbit.theta * 180) / Math.PI;
+        }
+        dial.style.transform = `rotate(${deg.toFixed(1)}deg)`;
+      }
+
+      function alignMapNorth() {
+        orbit.theta = 0;
+        orbit.velTheta = 0;
+        if ((state.renderMode === 'satellite' || state.renderMode === 'satellite2d') && maplibreMap) {
+          maplibreMap.easeTo({ bearing: 0, duration: 500 });
+        }
+        updateCameraFromOrbit();
+      }
+
+      function updateCameraFromOrbit() {
+        if (!camera || !orbit.target) return;
+        orbit.phi = Math.max(0.18, Math.min(Math.PI / 2 - 0.04, orbit.phi));
+        orbit.radius = Math.max(85, Math.min(680, orbit.radius));
+
+        const sinPhi = Math.sin(orbit.phi);
+        camera.position.set(
+          orbit.target.x + orbit.radius * sinPhi * Math.sin(orbit.theta),
+          orbit.target.y + orbit.radius * Math.cos(orbit.phi),
+          orbit.target.z + orbit.radius * sinPhi * Math.cos(orbit.theta)
+        );
+        camera.lookAt(orbit.target);
+        syncCompassRotation();
+
+        const normTheta = (((orbit.theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2));
+        const quad = Math.floor(normTheta / (Math.PI / 2));
+        if (lastLabelOrientQuadrant !== null && quad !== lastLabelOrientQuadrant) {
+          updateRouteLabelOverlay();
+        }
+        lastLabelOrientQuadrant = quad;
+      }
+
+      function initThreeEngine() {
+        const container = document.getElementById('three-container');
+        if (!container || typeof THREE === 'undefined' || !hasWebGLSupport()) {
+          renderMobile2DFallbackMap('2D Relief Map');
+          return false;
+        }
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0f0d);
+        scene.fog = new THREE.FogExp2(0x0b0f0d, 0.0011);
+
+        const w = container.clientWidth || window.innerWidth;
+        const h = container.clientHeight || window.innerHeight;
+        camera = new THREE.PerspectiveCamera(42, w / Math.max(h, 1), 1, 2000);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(w, h);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.innerHTML = '';
+        container.appendChild(renderer.domElement);
+
+        renderer.domElement.addEventListener('webglcontextlost', e => {
+          e.preventDefault();
+          renderer = null;
+          renderMobile2DFallbackMap('2D Fallback View');
+        });
+
+        const hemiLight = new THREE.HemisphereLight(0xf0fdf4, 0x1e293b, 0.78);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.15);
+        dirLight.position.set(160, 240, 140);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 20;
+        dirLight.shadow.camera.far = 700;
+        const d = 175;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.bias = -0.0005;
+        scene.add(dirLight);
+
+        const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.32);
+        rimLight.position.set(-150, 110, -140);
+        scene.add(rimLight);
+
+        dioramaGroup = new THREE.Group();
+        scene.add(dioramaGroup);
+
+        const scrubGeo = new THREE.SphereGeometry(1.4, 16, 16);
+        const scrubMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        scrubMarkerMesh = new THREE.Mesh(scrubGeo, scrubMat);
+        scrubMarkerMesh.visible = false;
+        dioramaGroup.add(scrubMarkerMesh);
+
+        raycaster = new THREE.Raycaster();
+        pointer = new THREE.Vector2();
+
+        orbit.target = new THREE.Vector3(0, 12, 0);
+        updateCameraFromOrbit();
+
+        const dom = renderer.domElement;
+        dom.style.touchAction = 'none';
+
+        const isCoarsePointer = () =>
+          window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+        // Multi-touch gesture handler (1-finger smooth orbit, 2-finger pinch zoom & pan)
+        dom.addEventListener(
+          'touchstart',
+          e => {
+            e.preventDefault();
+            orbit.isTouchActive = true;
+            orbit.velTheta = 0;
+            orbit.velPhi = 0;
+
+            if (e.touches.length === 1) {
+              const t = e.touches[0];
+              orbit.isDragging = true;
+              orbit.dragMode = 'rotate';
+              orbit.prevX = t.clientX;
+              orbit.prevY = t.clientY;
+              orbit.downX = t.clientX;
+              orbit.downY = t.clientY;
+            } else if (e.touches.length >= 2) {
+              orbit.isDragging = false;
+              const t0 = e.touches[0];
+              const t1 = e.touches[1];
+              orbit.lastPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+              orbit.lastPinchMidX = (t0.clientX + t1.clientX) * 0.5;
+              orbit.lastPinchMidY = (t0.clientY + t1.clientY) * 0.5;
+            }
+          },
+          { passive: false }
+        );
+
+        dom.addEventListener(
+          'touchmove',
+          e => {
+            e.preventDefault();
+            if (!orbit.target) return;
+
+            if (e.touches.length === 1 && orbit.isDragging) {
+              const t = e.touches[0];
+              const dx = t.clientX - orbit.prevX;
+              const dy = t.clientY - orbit.prevY;
+              orbit.prevX = t.clientX;
+              orbit.prevY = t.clientY;
+
+              // Reduced touch sensitivity for controlled finger orbiting
+              const dTheta = -dx * 0.0038;
+              const dPhi = -dy * 0.0034;
+              orbit.theta += dTheta;
+              orbit.phi += dPhi;
+              orbit.velTheta = dTheta * 0.65;
+              orbit.velPhi = dPhi * 0.65;
+              updateCameraFromOrbit();
+            } else if (e.touches.length >= 2) {
+              const t0 = e.touches[0];
+              const t1 = e.touches[1];
+              const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+              const midX = (t0.clientX + t1.clientX) * 0.5;
+              const midY = (t0.clientY + t1.clientY) * 0.5;
+
+              if (orbit.lastPinchDist > 10 && dist > 10) {
+                const zoomRatio = orbit.lastPinchDist / dist;
+                // Dampen zoom factor so pinch feels steady rather than jumpy
+                const dampedZoom = 1 + (zoomRatio - 1) * 0.72;
+                orbit.radius *= dampedZoom;
+              }
+
+              const panDx = midX - orbit.lastPinchMidX;
+              const panDy = midY - orbit.lastPinchMidY;
+              const right = new THREE.Vector3();
+              camera.getWorldDirection(right);
+              right.cross(camera.up).normalize();
+              const panScale = orbit.radius * 0.00115;
+              orbit.target.addScaledVector(right, -panDx * panScale);
+              orbit.target.y += panDy * panScale * 0.85;
+
+              orbit.lastPinchDist = dist;
+              orbit.lastPinchMidX = midX;
+              orbit.lastPinchMidY = midY;
+              updateCameraFromOrbit();
+            }
+          },
+          { passive: false }
+        );
+
+        dom.addEventListener('touchend', e => {
+          if (e.touches.length === 0) {
+            const changed = e.changedTouches?.[0];
+            if (orbit.isDragging && changed && state.renderMode === 'diorama') {
+              const moved = Math.hypot(changed.clientX - orbit.downX, changed.clientY - orbit.downY);
+              // Slightly larger tap tolerance (12px) for natural finger taps
+              if (moved < 12) {
+                orbit.velTheta = 0;
+                orbit.velPhi = 0;
+                handleClickRaycast({ clientX: changed.clientX, clientY: changed.clientY, pointerType: 'touch' });
+              }
+            }
+            orbit.isDragging = false;
+            orbit.isTouchActive = false;
+            orbit.lastPinchDist = 0;
+          } else if (e.touches.length === 1) {
+            const t = e.touches[0];
+            orbit.isDragging = true;
+            orbit.prevX = t.clientX;
+            orbit.prevY = t.clientY;
+            orbit.downX = t.clientX;
+            orbit.downY = t.clientY;
+            orbit.lastPinchDist = 0;
+          }
+        });
+
+        // Desktop mouse pointer controls (skipped during touch events to prevent double-handling)
+        dom.addEventListener('pointerdown', e => {
+          if (e.pointerType === 'touch') return;
+          orbit.isDragging = true;
+          orbit.velTheta = 0;
+          orbit.velPhi = 0;
+          orbit.dragMode = e.button === 2 || e.shiftKey ? 'pan' : 'rotate';
+          orbit.prevX = e.clientX;
+          orbit.prevY = e.clientY;
+          orbit.downX = e.clientX;
+          orbit.downY = e.clientY;
+        });
+
+        window.addEventListener('pointermove', e => {
+          if (e.pointerType === 'touch' || !orbit.isDragging || !orbit.target) return;
+          const dx = e.clientX - orbit.prevX;
+          const dy = e.clientY - orbit.prevY;
+          orbit.prevX = e.clientX;
+          orbit.prevY = e.clientY;
+
+          if (orbit.dragMode === 'rotate') {
+            const sens = isCoarsePointer() ? 0.004 : 0.007;
+            orbit.theta -= dx * sens;
+            orbit.phi -= dy * (sens * 0.92);
+          } else {
+            const right = new THREE.Vector3();
+            camera.getWorldDirection(right);
+            right.cross(camera.up).normalize();
+            const panScale = orbit.radius * 0.0014;
+            orbit.target.addScaledVector(right, -dx * panScale);
+            orbit.target.y += dy * panScale * 0.85;
+          }
+          updateCameraFromOrbit();
+        });
+
+        window.addEventListener('pointerup', e => {
+          if (e.pointerType === 'touch' || !orbit.isDragging) return;
+          const moved = Math.hypot(e.clientX - orbit.downX, e.clientY - orbit.downY);
+          orbit.isDragging = false;
+          if (moved < 6 && state.renderMode === 'diorama') {
+            handleClickRaycast(e);
+          }
+        });
+
+        dom.addEventListener(
+          'wheel',
+          e => {
+            e.preventDefault();
+            orbit.radius *= e.deltaY > 0 ? 1.09 : 0.91;
+            updateCameraFromOrbit();
+          },
+          { passive: false }
+        );
+
+        dom.addEventListener('contextmenu', e => e.preventDefault());
+
+        window.addEventListener('resize', () => {
+          if (!renderer || !camera) return;
+          const w = container.clientWidth || window.innerWidth;
+          const h = container.clientHeight || window.innerHeight;
+          camera.aspect = w / Math.max(h, 1);
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h);
+          if (state.selectedItem && state.selectedItem.type === 'track') {
+            drawElevationChart(state.selectedItem.data);
+          }
+          if (!renderer && state.gpxData && state.renderMode === 'diorama') {
+            renderMobile2DFallbackMap();
+          }
+          updateWaypointScreenLabels();
+        });
+        return true;
+      }
+
+      // =========================================================================
+      // 4. REAL-WORLD DEM + SATELLITE TILE FETCHER & TEXTURE GENERATORS
+      // =========================================================================
+      function lon2tile(lon, zoom) {
+        return ((lon + 180) / 360) * Math.pow(2, zoom);
+      }
+
+      function lat2tile(lat, zoom) {
+        const rad = (lat * Math.PI) / 180;
+        return (
+          ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) *
+          Math.pow(2, zoom)
+        );
+      }
+
+      function loadImageCORS(url) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('Tile load failed'));
+          img.src = url;
+        });
+      }
+
+      async function buildTerrainFromGPX(gpxData) {
+        const { minLat, maxLat, minLon, maxLon, centerLat } = gpxData.bounds;
+        const latMeters = (maxLat - minLat) * 111320;
+        const lonMeters = (maxLon - minLon) * 111320 * Math.cos((centerLat * Math.PI) / 180);
+        const aspect = lonMeters / Math.max(latMeters, 1);
+
+        if (aspect >= 1) {
+          blockWidth = BLOCK_SIZE;
+          blockDepth = BLOCK_SIZE / aspect;
+        } else {
+          blockDepth = BLOCK_SIZE;
+          blockWidth = BLOCK_SIZE * aspect;
+        }
+        metersPerWorldUnit = Math.max(lonMeters, latMeters) / BLOCK_SIZE;
+
+        synthesizeProceduralElevation(gpxData);
+        const fallbackCanvas = generateProceduralTextureCanvas(gpxData, state.surfaceStyle);
+        if (typeof THREE !== 'undefined' && renderer) {
+          if (activeTexture) activeTexture.dispose();
+          activeTexture = new THREE.CanvasTexture(fallbackCanvas);
+          activeTexture.anisotropy = 4;
+          rebuildDioramaMesh();
+        } else {
+          renderMobile2DFallbackMap('GPX Relief Map');
+        }
+
+        try {
+          const zoom = 14;
+          const xMinF = lon2tile(minLon, zoom);
+          const xMaxF = lon2tile(maxLon, zoom);
+          const yMinF = lat2tile(maxLat, zoom);
+          const yMaxF = lat2tile(minLat, zoom);
+
+          const x0 = Math.floor(xMinF);
+          const x1 = Math.floor(xMaxF);
+          const y0 = Math.floor(yMinF);
+          const y1 = Math.floor(yMaxF);
+
+          const tilesX = x1 - x0 + 1;
+          const tilesY = y1 - y0 + 1;
+
+          if (tilesX <= 5 && tilesY <= 5) {
+            const tileSize = 256;
+            const demCanvas = document.createElement('canvas');
+            demCanvas.width = tilesX * tileSize;
+            demCanvas.height = tilesY * tileSize;
+            const demCtx = demCanvas.getContext('2d');
+
+            const satCanvas = document.createElement('canvas');
+            satCanvas.width = tilesX * tileSize;
+            satCanvas.height = tilesY * tileSize;
+            const satCtx = satCanvas.getContext('2d');
+
+            const jobs = [];
+            for (let tx = x0; tx <= x1; tx++) {
+              for (let ty = y0; ty <= y1; ty++) {
+                const dx = (tx - x0) * tileSize;
+                const dy = (ty - y0) * tileSize;
+                const demUrl = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${zoom}/${tx}/${ty}.png`;
+                const satUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${ty}/${tx}`;
+
+                jobs.push(loadImageCORS(demUrl).then(img => demCtx.drawImage(img, dx, dy)));
+                jobs.push(loadImageCORS(satUrl).then(img => satCtx.drawImage(img, dx, dy)));
+              }
+            }
+
+            await Promise.all(jobs);
+
+            const demPixels = demCtx.getImageData(0, 0, demCanvas.width, demCanvas.height).data;
+            const sampleDemPixel = (px, py) => {
+              const cx = Math.min(demCanvas.width - 1, Math.max(0, px));
+              const cy = Math.min(demCanvas.height - 1, Math.max(0, py));
+              const pIdx = (cy * demCanvas.width + cx) * 4;
+              return demPixels[pIdx] * 256 + demPixels[pIdx + 1] + demPixels[pIdx + 2] / 256 - 32768;
+            };
+
+            const rawGrid = new Float32Array((GRID_RES + 1) * (GRID_RES + 1));
+            for (let iz = 0; iz <= GRID_RES; iz++) {
+              const v = iz / GRID_RES;
+              const lat = maxLat - v * (maxLat - minLat);
+              const tyF = lat2tile(lat, zoom);
+              const pyF = (tyF - y0) * tileSize;
+              const py0 = Math.floor(pyF);
+              const fy = pyF - py0;
+
+              for (let ix = 0; ix <= GRID_RES; ix++) {
+                const u = ix / GRID_RES;
+                const lon = minLon + u * (maxLon - minLon);
+                const txF = lon2tile(lon, zoom);
+                const pxF = (txF - x0) * tileSize;
+                const px0 = Math.floor(pxF);
+                const fx = pxF - px0;
+
+                const h00 = sampleDemPixel(px0, py0);
+                const h10 = sampleDemPixel(px0 + 1, py0);
+                const h01 = sampleDemPixel(px0, py0 + 1);
+                const h11 = sampleDemPixel(px0 + 1, py0 + 1);
+                const ele = (h00 * (1 - fx) + h10 * fx) * (1 - fy) + (h01 * (1 - fx) + h11 * fx) * fy;
+                rawGrid[iz * (GRID_RES + 1) + ix] = ele;
+              }
+            }
+
+            let fetchedMin = Infinity;
+            let fetchedMax = -Infinity;
+            for (let iz = 0; iz <= GRID_RES; iz++) {
+              for (let ix = 0; ix <= GRID_RES; ix++) {
+                let sum = 0;
+                let wSum = 0;
+                for (let dz = -1; dz <= 1; dz++) {
+                  for (let dx = -1; dx <= 1; dx++) {
+                    const nz = Math.min(GRID_RES, Math.max(0, iz + dz));
+                    const nx = Math.min(GRID_RES, Math.max(0, ix + dx));
+                    const w = (dx === 0 ? 2 : 1) * (dz === 0 ? 2 : 1);
+                    sum += rawGrid[nz * (GRID_RES + 1) + nx] * w;
+                    wSum += w;
+                  }
+                }
+                const smoothEle = sum / wSum;
+                elevationGrid[iz * (GRID_RES + 1) + ix] = smoothEle;
+                if (smoothEle < fetchedMin) fetchedMin = smoothEle;
+                if (smoothEle > fetchedMax) fetchedMax = smoothEle;
+              }
+            }
+
+            if (fetchedMax > fetchedMin && fetchedMin > -500) {
+              gpxData.bounds.minEle = fetchedMin;
+              gpxData.bounds.maxEle = fetchedMax;
+              state.isRealDataLoaded = true;
+
+              const cropCanvas = document.createElement('canvas');
+              cropCanvas.width = 1024;
+              cropCanvas.height = Math.max(256, Math.round(1024 / aspect));
+              const cropCtx = cropCanvas.getContext('2d');
+
+              const sx = (xMinF - x0) * tileSize;
+              const sy = (yMinF - y0) * tileSize;
+              const sw = (xMaxF - xMinF) * tileSize;
+              const sh = (yMaxF - yMinF) * tileSize;
+              cropCtx.drawImage(satCanvas, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
+
+              drawContourLinesOnCanvas(cropCtx, cropCanvas.width, cropCanvas.height, gpxData, 0.24, false);
+
+              window._cachedSatelliteCanvas = cropCanvas;
+              if (typeof THREE !== 'undefined' && renderer) {
+                updateSurfaceTexture();
+                rebuildDioramaMesh();
+              } else {
+                renderMobile2DFallbackMap('Live Satellite + Contours');
+              }
+              setStatusBadge('Live DEM + Satellite', 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30');
+            }
+          }
+        } catch (err) {
+          if (!renderer && state.gpxData) {
+            renderMobile2DFallbackMap('GPX Terrain Ready');
+          }
+          setStatusBadge('GPX 3D Relief', 'bg-amber-500/20 text-amber-300 border-amber-400/30');
+        }
+      }
+
+      function synthesizeProceduralElevation(gpxData) {
+        const { minLat, maxLat, minLon, maxLon } = gpxData.bounds;
+        const samples = [];
+        gpxData.tracks.forEach(t => {
+          t.points.forEach((p, idx) => {
+            if (idx % 2 === 0) samples.push({ lat: p.lat, lon: p.lon, ele: p.ele });
+          });
+        });
+
+        for (let iz = 0; iz <= GRID_RES; iz++) {
+          const v = iz / GRID_RES;
+          const lat = maxLat - v * (maxLat - minLat);
+          for (let ix = 0; ix <= GRID_RES; ix++) {
+            const u = ix / GRID_RES;
+            const lon = minLon + u * (maxLon - minLon);
+
+            let num = 0;
+            let den = 0;
+            for (let s = 0; s < samples.length; s++) {
+              const dLat = (lat - samples[s].lat) * 111320;
+              const dLon = (lon - samples[s].lon) * 91600;
+              const d2 = dLat * dLat + dLon * dLon + 180;
+              const w = 1 / d2;
+              num += samples[s].ele * w;
+              den += w;
+            }
+            const baseEle = den > 0 ? num / den : 210;
+            const ridge =
+              Math.sin(u * 13.5 + v * 6.2) * 5.5 +
+              Math.cos(u * 7.0 - v * 11.0) * 4.2 +
+              Math.sin((u + v) * 24.0) * 1.8;
+
+            elevationGrid[iz * (GRID_RES + 1) + ix] = baseEle + ridge;
+          }
+        }
+      }
+
+      function generateProceduralTextureCanvas(gpxData, style) {
+        const w = 1024;
+        const h = Math.max(256, Math.round(1024 * (blockDepth / blockWidth)));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+
+        const { minEle, maxEle } = gpxData.bounds;
+        const eleSpan = Math.max(maxEle - minEle, 1);
+
+        const imgData = ctx.createImageData(w, h);
+        const data = imgData.data;
+
+        for (let y = 0; y < h; y++) {
+          const gz = (y / (h - 1)) * GRID_RES;
+          const iz0 = Math.floor(gz);
+          const iz1 = Math.min(GRID_RES, iz0 + 1);
+          const fz = gz - iz0;
+
+          for (let x = 0; x < w; x++) {
+            const gx = (x / (w - 1)) * GRID_RES;
+            const ix0 = Math.floor(gx);
+            const ix1 = Math.min(GRID_RES, ix0 + 1);
+            const fx = gx - ix0;
+
+            const e00 = elevationGrid[iz0 * (GRID_RES + 1) + ix0];
+            const e10 = elevationGrid[iz0 * (GRID_RES + 1) + ix1];
+            const e01 = elevationGrid[iz1 * (GRID_RES + 1) + ix0];
+            const e11 = elevationGrid[iz1 * (GRID_RES + 1) + ix1];
+            const ele = (e00 * (1 - fx) + e10 * fx) * (1 - fz) + (e01 * (1 - fx) + e11 * fx) * fz;
+            const t = Math.max(0, Math.min(1, (ele - minEle) / eleSpan));
+
+            const dx = e10 - e00;
+            const dz = e01 - e00;
+            const shade = Math.max(-0.2, Math.min(0.2, (-dx - dz) * 0.025));
+            const grain = (Math.sin(x * 0.43 + y * 0.29) * Math.cos(x * 0.21 - y * 0.51)) * 7;
+
+            let r, g, b;
+            if (style === 'topo') {
+              // Classic cream / warm tan USGS topographic map paper with subtle hillshade
+              r = 242 - t * 14 + shade * 45 + grain * 0.25;
+              g = 236 - t * 16 + shade * 45 + grain * 0.25;
+              b = 218 - t * 22 + shade * 40 + grain * 0.2;
+            } else {
+              r = 34 + t * 34 + shade * 50 + grain;
+              g = 74 + t * 44 + shade * 60 + grain * 1.1;
+              b = 34 + t * 18 + shade * 35 + grain * 0.7;
+            }
+
+            const idx = (y * w + x) * 4;
+            data[idx] = Math.max(0, Math.min(255, r));
+            data[idx + 1] = Math.max(0, Math.min(255, g));
+            data[idx + 2] = Math.max(0, Math.min(255, b));
+            data[idx + 3] = 255;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        drawContourLinesOnCanvas(
+          ctx,
+          w,
+          h,
+          gpxData,
+          style === 'topo' ? 0.68 : 0.22,
+          style === 'topo'
+        );
+        return canvas;
+      }
+
+      // Smooth marching-squares contour line renderer
+      function drawContourLinesOnCanvas(ctx, w, h, gpxData, alpha, isClassicTopo = false) {
+        const { minEle, maxEle } = gpxData.bounds;
+        const interval = isClassicTopo ? 4 : 6;
+        const cellW = w / GRID_RES;
+        const cellH = h / GRID_RES;
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        for (let level = Math.ceil(minEle / interval) * interval; level < maxEle; level += interval) {
+          const isMajor = Math.round(level) % (interval * 5) === 0;
+          if (isClassicTopo) {
+            ctx.strokeStyle = isMajor
+              ? `rgba(120, 66, 26, ${Math.min(1, alpha * 1.25)})`
+              : `rgba(154, 96, 48, ${alpha * 0.62})`;
+            ctx.lineWidth = isMajor ? 1.55 : 0.85;
+          } else {
+            ctx.strokeStyle = isMajor
+              ? `rgba(255, 250, 235, ${alpha * 1.55})`
+              : `rgba(255, 250, 235, ${alpha * 0.75})`;
+            ctx.lineWidth = isMajor ? 1.3 : 0.7;
+          }
+
+          ctx.beginPath();
+          for (let iz = 0; iz < GRID_RES; iz++) {
+            const row0 = iz * (GRID_RES + 1);
+            const row1 = (iz + 1) * (GRID_RES + 1);
+            for (let ix = 0; ix < GRID_RES; ix++) {
+              const e00 = elevationGrid[row0 + ix];
+              const e10 = elevationGrid[row0 + ix + 1];
+              const e11 = elevationGrid[row1 + ix + 1];
+              const e01 = elevationGrid[row1 + ix];
+
+              let mask = 0;
+              if (e00 >= level) mask |= 1;
+              if (e10 >= level) mask |= 2;
+              if (e11 >= level) mask |= 4;
+              if (e01 >= level) mask |= 8;
+              if (mask === 0 || mask === 15) continue;
+
+              const interp = (a, b) => {
+                const d = b - a;
+                return Math.abs(d) < 1e-6 ? 0.5 : (level - a) / d;
+              };
+
+              const top = { x: (ix + interp(e00, e10)) * cellW, y: iz * cellH };
+              const right = { x: (ix + 1) * cellW, y: (iz + interp(e10, e11)) * cellH };
+              const bottom = { x: (ix + interp(e01, e11)) * cellW, y: (iz + 1) * cellH };
+              const left = { x: ix * cellW, y: (iz + interp(e00, e01)) * cellH };
+
+              const addSeg = (p1, p2) => {
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+              };
+
+              switch (mask) {
+                case 1:
+                case 14:
+                  addSeg(left, top);
+                  break;
+                case 2:
+                case 13:
+                  addSeg(top, right);
+                  break;
+                case 3:
+                case 12:
+                  addSeg(left, right);
+                  break;
+                case 4:
+                case 11:
+                  addSeg(right, bottom);
+                  break;
+                case 5:
+                  addSeg(left, top);
+                  addSeg(right, bottom);
+                  break;
+                case 6:
+                case 9:
+                  addSeg(top, bottom);
+                  break;
+                case 7:
+                case 8:
+                  addSeg(left, bottom);
+                  break;
+                case 10:
+                  addSeg(top, right);
+                  addSeg(left, bottom);
+                  break;
+              }
+            }
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // =========================================================================
+      // 5. ORIENTATION-AWARE PARALLEL ROUTE LABELS
+      // =========================================================================
+      function drawRouteLabelsOnSurfaceCanvas(ctx, w, h, gpxData) {
+        if (!state.layers.roadLabels || !gpxData || !gpxData.tracks) return;
+        const { minLat, maxLat, minLon, maxLon } = gpxData.bounds;
+        const lonSpan = Math.max(maxLon - minLon, 1e-6);
+        const latSpan = Math.max(maxLat - minLat, 1e-6);
+
+        // Screen-right unit vector in texture/world-XZ coordinates based on active camera yaw
+        const yaw = (state.renderMode === 'satellite' || state.renderMode === 'satellite2d') && maplibreMap
+          ? ((maplibreMap.getBearing() || 0) * Math.PI) / 180
+          : orbit.theta;
+        const screenRightX = Math.cos(yaw);
+        const screenRightY = -Math.sin(yaw);
+
+        const toCanvas = pt => ({
+          x: ((pt.lon - minLon) / lonSpan) * w,
+          y: ((maxLat - pt.lat) / latSpan) * h
+        });
+
+        const buildArcPolyline = points => {
+          const raw = points.map(toCanvas);
+          const cleaned = [raw[0]];
+          for (let i = 1; i < raw.length; i++) {
+            const d = Math.hypot(raw[i].x - cleaned[cleaned.length - 1].x, raw[i].y - cleaned[cleaned.length - 1].y);
+            if (d > 2.0) cleaned.push(raw[i]);
+          }
+          if (cleaned.length < 2) return null;
+
+          const dense = [cleaned[0]];
+          for (let i = 1; i < cleaned.length; i++) {
+            const a = cleaned[i - 1];
+            const b = cleaned[i];
+            const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+            const steps = Math.max(1, Math.ceil(segLen / 4));
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps;
+              dense.push({
+                x: a.x + (b.x - a.x) * t,
+                y: a.y + (b.y - a.y) * t
+              });
+            }
+          }
+
+          // Project overall start->end onto the viewer's screen-right axis so labels read left-to-right
+          const chordDx = dense[dense.length - 1].x - dense[0].x;
+          const chordDy = dense[dense.length - 1].y - dense[0].y;
+          const screenDot = chordDx * screenRightX + chordDy * screenRightY;
+          if (screenDot < 0) {
+            dense.reverse();
+          }
+
+          const smoothFrames = dense.map((pt, idx) => {
+            const i0 = Math.max(0, idx - 3);
+            const i1 = Math.min(dense.length - 1, idx + 3);
+            let dx = dense[i1].x - dense[i0].x;
+            let dy = dense[i1].y - dense[i0].y;
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+            return { x: pt.x, y: pt.y, dx, dy };
+          });
+
+          const cum = [0];
+          for (let i = 1; i < smoothFrames.length; i++) {
+            cum.push(
+              cum[i - 1] +
+                Math.hypot(smoothFrames[i].x - smoothFrames[i - 1].x, smoothFrames[i].y - smoothFrames[i - 1].y)
+            );
+          }
+          const totalLen = cum[cum.length - 1];
+          if (totalLen < 18) return null;
+
+          const sampleCenterAt = dist => {
+            const clamped = Math.max(0, Math.min(totalLen, dist));
+            let idx = 1;
+            while (idx < cum.length - 1 && cum[idx] < clamped) idx++;
+            const s0 = cum[idx - 1];
+            const s1 = cum[idx];
+            const t = s1 > s0 ? (clamped - s0) / (s1 - s0) : 0;
+
+            const f0 = smoothFrames[idx - 1];
+            const f1 = smoothFrames[idx];
+            const x = f0.x + (f1.x - f0.x) * t;
+            const y = f0.y + (f1.y - f0.y) * t;
+
+            let dx = f0.dx * (1 - t) + f1.dx * t;
+            let dy = f0.dy * (1 - t) + f1.dy * t;
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+
+            const angle = Math.atan2(dy, dx);
+            const nx = -dy;
+            const ny = dx;
+            return { x, y, angle, nx, ny };
+          };
+
+          const buildOffsetCurve = (centerFrac, spanWidth, clearance, sign) => {
+            const halfSpan = Math.max(spanWidth * 0.65, 24);
+            const startCenter = Math.max(0, Math.min(totalLen, totalLen * centerFrac - halfSpan));
+            const endCenter = Math.max(startCenter + 4, Math.min(totalLen, totalLen * centerFrac + halfSpan));
+
+            const sampleCount = 48;
+            const offsetPts = [];
+            const offsetCum = [0];
+
+            for (let k = 0; k <= sampleCount; k++) {
+              const u = k / sampleCount;
+              const cPt = sampleCenterAt(startCenter + u * (endCenter - startCenter));
+              const ox = cPt.x + cPt.nx * clearance * sign;
+              const oy = cPt.y + cPt.ny * clearance * sign;
+              offsetPts.push({
+                x: ox,
+                y: oy,
+                cx: cPt.x,
+                cy: cPt.y,
+                angle: cPt.angle
+              });
+              if (k > 0) {
+                const prev = offsetPts[k - 1];
+                offsetCum.push(offsetCum[k - 1] + Math.hypot(ox - prev.x, oy - prev.y));
+              }
+            }
+
+            const offsetLen = offsetCum[offsetCum.length - 1];
+            const sampleOffsetAt = oDist => {
+              const clamped = Math.max(0, Math.min(offsetLen, oDist));
+              let idx = 1;
+              while (idx < offsetCum.length - 1 && offsetCum[idx] < clamped) idx++;
+              const d0 = offsetCum[idx - 1];
+              const d1 = offsetCum[idx];
+              const t = d1 > d0 ? (clamped - d0) / (d1 - d0) : 0;
+              const p0 = offsetPts[idx - 1];
+              const p1 = offsetPts[idx];
+
+              const ax = Math.cos(p0.angle) * (1 - t) + Math.cos(p1.angle) * t;
+              const ay = Math.sin(p0.angle) * (1 - t) + Math.sin(p1.angle) * t;
+              return {
+                x: p0.x + (p1.x - p0.x) * t,
+                y: p0.y + (p1.y - p0.y) * t,
+                cx: p0.cx + (p1.cx - p0.cx) * t,
+                cy: p0.cy + (p1.cy - p0.cy) * t,
+                angle: Math.atan2(ay, ax)
+              };
+            };
+
+            return { offsetLen, sampleOffsetAt };
+          };
+
+          return { totalLen, buildOffsetCurve };
+        };
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        const placedBoxes = [];
+
+        gpxData.tracks.forEach((track, tIdx) => {
+          if (!state.layers[track.tier] || !track.points || track.points.length < 2) return;
+          const poly = buildArcPolyline(track.points);
+          if (!poly) return;
+
+          const cfg = TIER_CONFIG[track.tier] || TIER_CONFIG.secondary;
+          const isSelected = state.selectedItem?.type === 'track' && state.selectedItem.data.id === track.id;
+
+          const fontSize = isSelected ? 12 : 10;
+          ctx.font = `${isSelected ? 700 : 600} ${fontSize}px Inter, -apple-system, sans-serif`;
+
+          const text = track.name;
+          const chars = Array.from(text);
+          if (chars.length === 0) return;
+
+          const measuredWidths = chars.map(ch => ctx.measureText(ch).width);
+          const maxCharWidth = Math.max(...measuredWidths, fontSize * 0.58);
+          const avgCharWidth = measuredWidths.reduce((a, b) => a + b, 0) / chars.length;
+
+          const charStep = Math.max(avgCharWidth * 1.28, maxCharWidth * 1.05, fontSize * 0.76);
+          const spanBetweenFirstLast = charStep * Math.max(0, chars.length - 1);
+          const textPixelWidth = spanBetweenFirstLast + maxCharWidth;
+
+          const margin = 12;
+          if (textPixelWidth + margin * 2 > poly.totalLen) return;
+
+          const tubeClearance = (isSelected ? 13.5 : 12) + fontSize * 0.45;
+          const preferredSign = tIdx % 2 === 0 ? 1 : -1;
+
+          const candidates = [0.5, 0.35, 0.65, 0.25, 0.75, 0.42, 0.58];
+          let chosenPlacement = null;
+
+          for (const frac of candidates) {
+            for (const sign of [preferredSign, -preferredSign]) {
+              const offsetCurve = poly.buildOffsetCurve(frac, textPixelWidth, tubeClearance, sign);
+              const padEnds = maxCharWidth * 0.5 + 4;
+              if (offsetCurve.offsetLen < spanBetweenFirstLast + padEnds * 2) continue;
+
+              const startODist = (offsetCurve.offsetLen - spanBetweenFirstLast) * 0.5;
+              const glyphSamples = [];
+              let valid = true;
+
+              for (let i = 0; i < chars.length; i++) {
+                const pt = offsetCurve.sampleOffsetAt(startODist + i * charStep);
+
+                if (pt.x < 12 || pt.x > w - 12 || pt.y < 12 || pt.y > h - 12) {
+                  valid = false;
+                  break;
+                }
+
+                const distToRoad = Math.hypot(pt.x - pt.cx, pt.y - pt.cy);
+                if (distToRoad < tubeClearance * 0.78) {
+                  valid = false;
+                  break;
+                }
+
+                if (glyphSamples.length > 0) {
+                  const prevGlyph = glyphSamples[glyphSamples.length - 1];
+                  if (Math.hypot(pt.x - prevGlyph.px, pt.y - prevGlyph.py) < charStep * 0.9) {
+                    valid = false;
+                    break;
+                  }
+                }
+
+                const r = charStep * 0.56;
+                for (let b = 0; b < placedBoxes.length; b++) {
+                  const box = placedBoxes[b];
+                  if (Math.hypot(pt.x - box.x, pt.y - box.y) < r + box.r + 4) {
+                    valid = false;
+                    break;
+                  }
+                }
+                if (!valid) break;
+
+                glyphSamples.push({ ch: chars[i], px: pt.x, py: pt.y, angle: pt.angle, r });
+              }
+
+              if (valid) {
+                chosenPlacement = glyphSamples;
+                break;
+              }
+            }
+            if (chosenPlacement) break;
+          }
+
+          if (!chosenPlacement) return;
+
+          chosenPlacement.forEach(g => {
+            ctx.save();
+            ctx.translate(g.px, g.py);
+            ctx.rotate(g.angle);
+
+            ctx.strokeStyle = 'rgba(7, 11, 9, 0.92)';
+            ctx.lineWidth = isSelected ? 4.0 : 3.2;
+            ctx.strokeText(g.ch, 0, 0);
+
+            ctx.fillStyle = isSelected ? SELECTED_ROUTE_HEX : cfg.colorHex;
+            ctx.globalAlpha = isSelected ? 1.0 : 0.96;
+            ctx.fillText(g.ch, 0, 0);
+            ctx.restore();
+
+            placedBoxes.push({ x: g.px, y: g.py, r: g.r });
+          });
+        });
+
+        ctx.restore();
+      }
+
+      function generateRouteLabelsCanvas(w, h, gpxData) {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        drawRouteLabelsOnSurfaceCanvas(ctx, w, h, gpxData);
+        return canvas;
+      }
+
+      function updateRouteLabelOverlay() {
+        if (!dioramaGroup || !state.gpxData) return;
+
+        const w = 1024;
+        const h = Math.max(256, Math.round(1024 * (blockDepth / blockWidth)));
+        const labelCanvas = generateRouteLabelsCanvas(w, h, state.gpxData);
+
+        if (routeLabelTexture) routeLabelTexture.dispose();
+        routeLabelTexture = new THREE.CanvasTexture(labelCanvas);
+        routeLabelTexture.anisotropy = 4;
+
+        if (!routeLabelMesh) {
+          const geo = new THREE.PlaneGeometry(blockWidth, blockDepth, GRID_RES, GRID_RES);
+          geo.rotateX(-Math.PI / 2);
+
+          const pos = geo.attributes.position;
+          for (let iz = 0; iz <= GRID_RES; iz++) {
+            for (let ix = 0; ix <= GRID_RES; ix++) {
+              const idx = iz * (GRID_RES + 1) + ix;
+              pos.setY(idx, eleMetersToWorldY(elevationGrid[idx]) + 2.05);
+            }
+          }
+          geo.computeVertexNormals();
+
+          const mat = new THREE.MeshBasicMaterial({
+            map: routeLabelTexture,
+            transparent: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -2
+          });
+
+          routeLabelMesh = new THREE.Mesh(geo, mat);
+          routeLabelMesh.renderOrder = 3;
+          dioramaGroup.add(routeLabelMesh);
+        } else {
+          const pos = routeLabelMesh.geometry.attributes.position;
+          for (let iz = 0; iz <= GRID_RES; iz++) {
+            for (let ix = 0; ix <= GRID_RES; ix++) {
+              const idx = iz * (GRID_RES + 1) + ix;
+              pos.setY(idx, eleMetersToWorldY(elevationGrid[idx]) + 2.05);
+            }
+          }
+          pos.needsUpdate = true;
+          routeLabelMesh.geometry.computeVertexNormals();
+          routeLabelMesh.material.map = routeLabelTexture;
+          routeLabelMesh.material.needsUpdate = true;
+        }
+
+        routeLabelMesh.visible = state.layers.roadLabels;
+      }
+
+      function updateSurfaceTexture() {
+        if (!state.gpxData) return;
+        if (typeof THREE === 'undefined' || !renderer) {
+          renderMobile2DFallbackMap();
+          return;
+        }
+        let canvas;
+        if (state.isRealDataLoaded && state.surfaceStyle === 'hybrid' && window._cachedSatelliteCanvas) {
+          canvas = document.createElement('canvas');
+          canvas.width = window._cachedSatelliteCanvas.width;
+          canvas.height = window._cachedSatelliteCanvas.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(window._cachedSatelliteCanvas, 0, 0);
+        } else {
+          canvas = generateProceduralTextureCanvas(state.gpxData, state.surfaceStyle);
+        }
+        if (activeTexture) activeTexture.dispose();
+        activeTexture = new THREE.CanvasTexture(canvas);
+        activeTexture.anisotropy = 4;
+        if (terrainMesh) {
+          terrainMesh.material.map = activeTexture;
+          terrainMesh.material.needsUpdate = true;
+        }
+        updateRouteLabelOverlay();
+      }
+
+      // =========================================================================
+      // 6. COORDINATE PROJECTION & 3D MESH BUILDERS
+      // =========================================================================
+      function latLonToWorldXZ(lat, lon) {
+        const { minLat, maxLat, minLon, maxLon } = state.gpxData.bounds;
+        const u = (lon - minLon) / Math.max(maxLon - minLon, 1e-6);
+        const v = (maxLat - lat) / Math.max(maxLat - minLat, 1e-6);
+        return {
+          x: (u - 0.5) * blockWidth,
+          z: (v - 0.5) * blockDepth,
+          u,
+          v
+        };
+      }
+
+      function sampleElevationAtUV(u, v) {
+        const cu = Math.max(0, Math.min(1, u));
+        const cv = Math.max(0, Math.min(1, v));
+        const gx = cu * GRID_RES;
+        const gz = cv * GRID_RES;
+        const ix0 = Math.floor(gx);
+        const iz0 = Math.floor(gz);
+        const ix1 = Math.min(GRID_RES, ix0 + 1);
+        const iz1 = Math.min(GRID_RES, iz0 + 1);
+        const fx = gx - ix0;
+        const fz = gz - iz0;
+
+        const e00 = elevationGrid[iz0 * (GRID_RES + 1) + ix0];
+        const e10 = elevationGrid[iz0 * (GRID_RES + 1) + ix1];
+        const e01 = elevationGrid[iz1 * (GRID_RES + 1) + ix0];
+        const e11 = elevationGrid[iz1 * (GRID_RES + 1) + ix1];
+        return (e00 * (1 - fx) + e10 * fx) * (1 - fz) + (e01 * (1 - fx) + e11 * fx) * fz;
+      }
+
+      function eleMetersToWorldY(eleMeters) {
+        const { minEle } = state.gpxData.bounds;
+        return ((eleMeters - minEle) / Math.max(metersPerWorldUnit, 1)) * state.exaggeration;
+      }
+
+      function rebuildDioramaMesh() {
+        if (!dioramaGroup || !state.gpxData || typeof THREE === 'undefined' || !renderer) {
+          if (!renderer && state.gpxData) renderMobile2DFallbackMap();
+          return;
+        }
+
+        if (terrainMesh) {
+          dioramaGroup.remove(terrainMesh);
+          terrainMesh.geometry.dispose();
+        }
+        if (skirtMesh) {
+          dioramaGroup.remove(skirtMesh);
+          skirtMesh.geometry.dispose();
+        }
+        if (basePlinthMesh) {
+          dioramaGroup.remove(basePlinthMesh);
+          basePlinthMesh.geometry.dispose();
+        }
+        if (routeLabelMesh) {
+          dioramaGroup.remove(routeLabelMesh);
+          routeLabelMesh.geometry.dispose();
+          routeLabelMesh = null;
+        }
+
+        const geo = new THREE.PlaneGeometry(blockWidth, blockDepth, GRID_RES, GRID_RES);
+        geo.rotateX(-Math.PI / 2);
+
+        const pos = geo.attributes.position;
+        for (let iz = 0; iz <= GRID_RES; iz++) {
+          for (let ix = 0; ix <= GRID_RES; ix++) {
+            const idx = iz * (GRID_RES + 1) + ix;
+            const ele = elevationGrid[idx];
+            pos.setY(idx, eleMetersToWorldY(ele));
+          }
+        }
+        geo.computeVertexNormals();
+
+        const mat = new THREE.MeshStandardMaterial({
+          map: activeTexture,
+          roughness: 0.86,
+          metalness: 0.04
+        });
+
+        terrainMesh = new THREE.Mesh(geo, mat);
+        terrainMesh.receiveShadow = true;
+        terrainMesh.castShadow = true;
+        dioramaGroup.add(terrainMesh);
+
+        const skirtBottom = -16;
+        const skirtPositions = [];
+        const skirtColors = [];
+
+        const addQuad = (x1, y1, z1, x2, y2, z2) => {
+          skirtPositions.push(
+            x1, y1, z1,  x1, skirtBottom, z1,  x2, y2, z2,
+            x2, y2, z2,  x1, skirtBottom, z1,  x2, skirtBottom, z2
+          );
+          for (let k = 0; k < 6; k++) {
+            const isBottom = k === 1 || k === 4 || k === 5;
+            if (isBottom) {
+              skirtColors.push(0.11, 0.09, 0.08);
+            } else {
+              skirtColors.push(0.24, 0.20, 0.17);
+            }
+          }
+        };
+
+        for (let ix = 0; ix < GRID_RES; ix++) {
+          const u0 = ix / GRID_RES;
+          const u1 = (ix + 1) / GRID_RES;
+          const x0 = (u0 - 0.5) * blockWidth;
+          const x1 = (u1 - 0.5) * blockWidth;
+
+          const zN = -0.5 * blockDepth;
+          addQuad(x1, eleMetersToWorldY(elevationGrid[ix + 1]), zN, x0, eleMetersToWorldY(elevationGrid[ix]), zN);
+
+          const zS = 0.5 * blockDepth;
+          const rowS = GRID_RES * (GRID_RES + 1);
+          addQuad(x0, eleMetersToWorldY(elevationGrid[rowS + ix]), zS, x1, eleMetersToWorldY(elevationGrid[rowS + ix + 1]), zS);
+        }
+
+        for (let iz = 0; iz < GRID_RES; iz++) {
+          const v0 = iz / GRID_RES;
+          const v1 = (iz + 1) / GRID_RES;
+          const z0 = (v0 - 0.5) * blockDepth;
+          const z1 = (v1 - 0.5) * blockDepth;
+
+          const xW = -0.5 * blockWidth;
+          addQuad(
+            xW, eleMetersToWorldY(elevationGrid[iz * (GRID_RES + 1)]), z0,
+            xW, eleMetersToWorldY(elevationGrid[(iz + 1) * (GRID_RES + 1)]), z1
+          );
+
+          const xE = 0.5 * blockWidth;
+          addQuad(
+            xE, eleMetersToWorldY(elevationGrid[(iz + 1) * (GRID_RES + 1) + GRID_RES]), z1,
+            xE, eleMetersToWorldY(elevationGrid[iz * (GRID_RES + 1) + GRID_RES]), z0
+          );
+        }
+
+        const skirtGeo = new THREE.BufferGeometry();
+        skirtGeo.setAttribute('position', new THREE.Float32BufferAttribute(skirtPositions, 3));
+        skirtGeo.setAttribute('color', new THREE.Float32BufferAttribute(skirtColors, 3));
+        skirtGeo.computeVertexNormals();
+
+        const skirtMat = new THREE.MeshStandardMaterial({
+          vertexColors: true,
+          roughness: 0.94,
+          metalness: 0.05
+        });
+
+        skirtMesh = new THREE.Mesh(skirtGeo, skirtMat);
+        skirtMesh.castShadow = true;
+        skirtMesh.receiveShadow = true;
+        dioramaGroup.add(skirtMesh);
+
+        const plinthGeo = new THREE.BoxGeometry(blockWidth + 3, 6, blockDepth + 3);
+        const plinthMat = new THREE.MeshStandardMaterial({
+          color: 0x111714,
+          roughness: 0.7,
+          metalness: 0.25
+        });
+        basePlinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
+        basePlinthMesh.position.y = skirtBottom - 3;
+        basePlinthMesh.receiveShadow = true;
+        dioramaGroup.add(basePlinthMesh);
+
+        build3DRoads();
+        build3DWaypoints();
+        updateRouteLabelOverlay();
+      }
+
+      function build3DRoads() {
+        if (!dioramaGroup || typeof THREE === 'undefined' || !renderer) {
+          if (!renderer && state.gpxData) renderMobile2DFallbackMap();
+          return;
+        }
+        roadMeshes.forEach(m => {
+          dioramaGroup.remove(m);
+          m.geometry.dispose();
+        });
+        roadMeshes = [];
+
+        state.gpxData.tracks.forEach(track => {
+          const cfg = TIER_CONFIG[track.tier] || TIER_CONFIG.secondary;
+          const isSelected = state.selectedItem?.type === 'track' && state.selectedItem.data.id === track.id;
+
+          const pts3D = [];
+          track.points.forEach(p => {
+            const { x, z, u, v } = latLonToWorldXZ(p.lat, p.lon);
+            const terrainEle = sampleElevationAtUV(u, v);
+            const y = eleMetersToWorldY(terrainEle) + 0.75;
+            pts3D.push(new THREE.Vector3(x, y, z));
+          });
+
+          const cleanPts = [pts3D[0]];
+          for (let i = 1; i < pts3D.length; i++) {
+            if (pts3D[i].distanceTo(cleanPts[cleanPts.length - 1]) > 0.2) {
+              cleanPts.push(pts3D[i]);
+            }
+          }
+          if (cleanPts.length < 2) return;
+
+          const curve = new THREE.CatmullRomCurve3(cleanPts);
+          const tubularSegments = Math.min(260, Math.max(24, cleanPts.length * 4));
+          const radius = isSelected ? cfg.radius * 1.48 : cfg.radius;
+
+          const tubeGeo = new THREE.TubeGeometry(curve, tubularSegments, radius, 8, false);
+          const tubeMat = new THREE.MeshBasicMaterial({
+            color: isSelected ? SELECTED_ROUTE_INT : cfg.colorInt,
+            toneMapped: false
+          });
+
+          const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+          mesh.visible = state.layers[track.tier];
+          mesh.userData = {
+            itemType: 'track',
+            track,
+            curve
+          };
+          dioramaGroup.add(mesh);
+          roadMeshes.push(mesh);
+        });
+      }
+
+      // =========================================================================
+      // 7. CUSTOM 3D STANDS, SWING GATES, TENT SHED & ORGANIC BEAR MODEL
+      // =========================================================================
+      let standCamoTexture = null;
+      let standCamoSelectedTexture = null;
+
+      function getStandCamoTexture(isSelected) {
+        if (isSelected && standCamoSelectedTexture) return standCamoSelectedTexture;
+        if (!isSelected && standCamoTexture) return standCamoTexture;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+
+        // Base olive/moss woodland tone
+        ctx.fillStyle = isSelected ? '#059669' : '#4b5a3c';
+        ctx.fillRect(0, 0, 128, 128);
+
+        // Organic woodland camo patches (dark pine, bark brown, sage tan)
+        const patches = isSelected
+          ? [
+              { color: '#064e3b', x: 18, y: 22, rx: 26, ry: 16, rot: 0.3 },
+              { color: '#34d399', x: 84, y: 30, rx: 24, ry: 14, rot: -0.4 },
+              { color: '#047857', x: 54, y: 74, rx: 32, ry: 18, rot: 0.2 },
+              { color: '#022c22', x: 102, y: 98, rx: 28, ry: 17, rot: -0.25 },
+              { color: '#6ee7b7', x: 24, y: 104, rx: 22, ry: 13, rot: 0.5 },
+              { color: '#065f46', x: 112, y: 16, rx: 22, ry: 15, rot: 0.1 },
+              { color: '#10b981', x: 12, y: 64, rx: 20, ry: 12, rot: -0.35 }
+            ]
+          : [
+              { color: '#2b3522', x: 18, y: 22, rx: 26, ry: 16, rot: 0.3 },
+              { color: '#6b5335', x: 84, y: 30, rx: 24, ry: 14, rot: -0.4 },
+              { color: '#3a462d', x: 54, y: 74, rx: 32, ry: 18, rot: 0.2 },
+              { color: '#1f2618', x: 102, y: 98, rx: 28, ry: 17, rot: -0.25 },
+              { color: '#7d8462', x: 24, y: 104, rx: 22, ry: 13, rot: 0.5 },
+              { color: '#584329', x: 112, y: 16, rx: 22, ry: 15, rot: 0.1 },
+              { color: '#657350', x: 12, y: 64, rx: 20, ry: 12, rot: -0.35 }
+            ];
+
+        patches.forEach(p => {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Subtle dark shooting-window trim strip near top of blind walls
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
+        ctx.fillRect(0, 26, 128, 12);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.anisotropy = 4;
+
+        if (isSelected) standCamoSelectedTexture = tex;
+        else standCamoTexture = tex;
+        return tex;
+      }
+
+      function buildStand3DMesh(isSelected) {
+        const group = new THREE.Group();
+        const postMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x34d399 : 0x475569,
+          roughness: 0.5,
+          metalness: 0.45
+        });
+        const blindMat = new THREE.MeshStandardMaterial({
+          map: getStandCamoTexture(isSelected),
+          roughness: 0.82,
+          metalness: 0.05
+        });
+        const roofMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x6ee7b7 : 0x1e293b,
+          roughness: 0.65,
+          metalness: 0.2
+        });
+
+        const legGeo = new THREE.CylinderGeometry(0.16, 0.2, 6.2, 8);
+        [
+          [-1.35, -1.35],
+          [1.35, -1.35],
+          [-1.35, 1.35],
+          [1.35, 1.35]
+        ].forEach(([ox, oz]) => {
+          const leg = new THREE.Mesh(legGeo, postMat);
+          leg.position.set(ox, 3.1, oz);
+          leg.castShadow = true;
+          group.add(leg);
+        });
+
+        const braceGeo = new THREE.BoxGeometry(2.85, 0.14, 0.14);
+        const braceFront = new THREE.Mesh(braceGeo, postMat);
+        braceFront.position.set(0, 3.4, 1.35);
+        group.add(braceFront);
+
+        const braceBack = new THREE.Mesh(braceGeo, postMat);
+        braceBack.position.set(0, 3.4, -1.35);
+        group.add(braceBack);
+
+        // Angled access ladder leading up to the blind platform
+        const ladderGroup = new THREE.Group();
+        const railGeo = new THREE.CylinderGeometry(0.08, 0.08, 6.4, 8);
+        [-0.42, 0.42].forEach(rx => {
+          const rail = new THREE.Mesh(railGeo, postMat);
+          rail.position.set(rx, 3.05, 0);
+          rail.castShadow = true;
+          ladderGroup.add(rail);
+        });
+
+        const rungGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.88, 8);
+        rungGeo.rotateZ(Math.PI / 2);
+        for (let r = 0; r < 7; r++) {
+          const rung = new THREE.Mesh(rungGeo, postMat);
+          rung.position.set(0, 0.75 + r * 0.78, 0);
+          rung.castShadow = true;
+          ladderGroup.add(rung);
+        }
+
+        ladderGroup.position.set(0, 0, 1.95);
+        ladderGroup.rotation.x = -0.18;
+        group.add(ladderGroup);
+
+        const cabinGeo = new THREE.BoxGeometry(3.2, 2.5, 3.2);
+        const cabin = new THREE.Mesh(cabinGeo, blindMat);
+        cabin.position.set(0, 7.1, 0);
+        cabin.castShadow = true;
+        group.add(cabin);
+
+        const roofGeo = new THREE.ConeGeometry(2.65, 1.35, 4);
+        roofGeo.rotateY(Math.PI / 4);
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 8.95, 0);
+        roof.castShadow = true;
+        group.add(roof);
+
+        return group;
+      }
+
+      function buildOneSidedGate3DMesh(isSelected) {
+        const group = new THREE.Group();
+        const hingePostMat = new THREE.MeshStandardMaterial({
+          color: 0x334155,
+          roughness: 0.5,
+          metalness: 0.4
+        });
+        const redStripeMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x10b981 : 0xdc2626,
+          roughness: 0.45,
+          metalness: 0.1
+        });
+        const whiteStripeMat = new THREE.MeshStandardMaterial({
+          color: 0xf8fafc,
+          roughness: 0.4,
+          metalness: 0.05
+        });
+
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 4.6, 12), hingePostMat);
+        post.position.set(-2.2, 2.3, 0);
+        post.castShadow = true;
+        group.add(post);
+
+        [1.4, 2.8].forEach(hy => {
+          const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.24, 12), redStripeMat);
+          collar.position.set(-2.2, hy, 0);
+          group.add(collar);
+        });
+
+        const armLength = 5.4;
+        const segments = 6;
+        const segLen = armLength / segments;
+        for (let i = 0; i < segments; i++) {
+          const seg = new THREE.Mesh(
+            new THREE.BoxGeometry(segLen, 0.32, 0.32),
+            i % 2 === 0 ? redStripeMat : whiteStripeMat
+          );
+          seg.position.set(-2.0 + (i + 0.5) * segLen, 2.1, 0);
+          seg.castShadow = true;
+          group.add(seg);
+        }
+
+        const brace = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4.3, 8), hingePostMat);
+        brace.position.set(-0.6, 1.75, 0);
+        brace.rotation.z = -0.34;
+        group.add(brace);
+
+        return group;
+      }
+
+      // White Tent-Shed with Peaked Gable Roof
+      function buildShop3DMesh(isSelected) {
+        const group = new THREE.Group();
+        const wallMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x34d399 : 0xf8fafc,
+          roughness: 0.55,
+          metalness: 0.06
+        });
+        const roofMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x059669 : 0x475569,
+          roughness: 0.45,
+          metalness: 0.35
+        });
+        const trimMat = new THREE.MeshStandardMaterial({
+          color: 0x94a3b8,
+          roughness: 0.5,
+          metalness: 0.2
+        });
+
+        const body = new THREE.Mesh(new THREE.BoxGeometry(5.8, 2.6, 4.4), wallMat);
+        body.position.set(0, 1.3, 0);
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        // Triangular tent-shed gable prism roof
+        const roofShape = new THREE.Shape();
+        roofShape.moveTo(-3.2, 0);
+        roofShape.lineTo(0, 2.5);
+        roofShape.lineTo(3.2, 0);
+        roofShape.closePath();
+
+        const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
+          depth: 4.9,
+          bevelEnabled: false
+        });
+        roofGeo.translate(0, 0, -2.45);
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 2.55, 0);
+        roof.castShadow = true;
+        group.add(roof);
+
+        // Ridge beam
+        const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 5.05), trimMat);
+        ridge.position.set(0, 5.06, 0);
+        group.add(ridge);
+
+        // Double shed doors
+        const doorLeft = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.0, 0.14), trimMat);
+        doorLeft.position.set(-0.62, 1.0, 2.22);
+        group.add(doorLeft);
+
+        const doorRight = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.0, 0.14), trimMat);
+        doorRight.position.set(0.62, 1.0, 2.22);
+        group.add(doorRight);
+
+        return group;
+      }
+
+      // Sculpted Rounded 3D Bear Model for Bear Den
+      function buildBear3DMesh(isSelected) {
+        const group = new THREE.Group();
+        const furMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x10b981 : 0x3b2314,
+          roughness: 0.78,
+          metalness: 0.04
+        });
+        const muzzleMat = new THREE.MeshStandardMaterial({
+          color: isSelected ? 0x6ee7b7 : 0x8c6239,
+          roughness: 0.65,
+          metalness: 0.04
+        });
+        const noseMat = new THREE.MeshStandardMaterial({
+          color: 0x0f172a,
+          roughness: 0.35
+        });
+
+        // Rounded torso
+        const torso = new THREE.Mesh(new THREE.SphereGeometry(1.85, 20, 16), furMat);
+        torso.scale.set(1.55, 0.96, 1.05);
+        torso.position.set(-0.15, 2.55, 0);
+        torso.castShadow = true;
+        group.add(torso);
+
+        // Shoulder hump
+        const hump = new THREE.Mesh(new THREE.SphereGeometry(1.35, 18, 14), furMat);
+        hump.scale.set(1.1, 0.95, 0.95);
+        hump.position.set(1.15, 2.95, 0);
+        hump.castShadow = true;
+        group.add(hump);
+
+        // Haunches
+        const haunch = new THREE.Mesh(new THREE.SphereGeometry(1.45, 18, 14), furMat);
+        haunch.scale.set(1.15, 0.95, 0.98);
+        haunch.position.set(-1.55, 2.65, 0);
+        haunch.castShadow = true;
+        group.add(haunch);
+
+        // Rounded head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(1.18, 20, 16), furMat);
+        head.scale.set(1.08, 0.98, 0.96);
+        head.position.set(2.55, 3.25, 0);
+        head.castShadow = true;
+        group.add(head);
+
+        // Rounded muzzle & nose
+        const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 14), muzzleMat);
+        muzzle.scale.set(1.25, 0.85, 0.85);
+        muzzle.position.set(3.55, 3.02, 0);
+        group.add(muzzle);
+
+        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), noseMat);
+        nose.position.set(4.25, 3.12, 0);
+        group.add(nose);
+
+        // Rounded ears
+        [-0.75, 0.75].forEach(ez => {
+          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.38, 14, 12), furMat);
+          ear.scale.set(0.65, 1.0, 1.0);
+          ear.position.set(2.35, 4.22, ez);
+          group.add(ear);
+        });
+
+        // Four cylindrical legs with rounded paws
+        const legGeo = new THREE.CylinderGeometry(0.46, 0.42, 2.1, 14);
+        const pawGeo = new THREE.SphereGeometry(0.48, 14, 10);
+        [
+          [1.35, 0.82],
+          [1.35, -0.82],
+          [-1.65, 0.82],
+          [-1.65, -0.82]
+        ].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeo, furMat);
+          leg.position.set(lx, 1.15, lz);
+          leg.castShadow = true;
+          group.add(leg);
+
+          const paw = new THREE.Mesh(pawGeo, furMat);
+          paw.scale.set(1.25, 0.6, 1.0);
+          paw.position.set(lx + 0.12, 0.25, lz);
+          group.add(paw);
+        });
+
+        // Stubby tail
+        const tail = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 10), furMat);
+        tail.position.set(-2.95, 2.95, 0);
+        group.add(tail);
+
+        group.scale.setScalar(0.5);
+        return group;
+      }
+
+      function build3DWaypoints() {
+        if (!dioramaGroup || typeof THREE === 'undefined' || !renderer) {
+          if (!renderer && state.gpxData) renderMobile2DFallbackMap();
+          return;
+        }
+        waypointMeshes.forEach(m => dioramaGroup.remove(m));
+        waypointMeshes = [];
+
+        const overlay = document.getElementById('labels-overlay');
+        if (overlay) {
+          overlay.querySelectorAll('.wpt-label').forEach(el => el.remove());
+        }
+
+        state.gpxData.waypoints.forEach(wpt => {
+          let { x, z, u, v } = latLonToWorldXZ(wpt.lat, wpt.lon);
+          if (wpt.category === 'bear') {
+            x += 2.6;
+            z += 0.9;
+            u = Math.max(0, Math.min(1, x / blockWidth + 0.5));
+            v = Math.max(0, Math.min(1, z / blockDepth + 0.5));
+          }
+          const terrainEle = wpt.ele !== null ? wpt.ele : sampleElevationAtUV(u, v);
+          const groundY = eleMetersToWorldY(terrainEle);
+          const isSelected = state.selectedItem?.type === 'waypoint' && state.selectedItem.data.id === wpt.id;
+
+          let markerGroup;
+          let labelHeightOffset = 8.5;
+
+          if (wpt.category === 'bear') {
+            markerGroup = buildBear3DMesh(isSelected);
+            labelHeightOffset = 3.2;
+          } else if (wpt.category === 'stand') {
+            markerGroup = buildStand3DMesh(isSelected);
+            labelHeightOffset = 10.6;
+          } else if (wpt.category === 'gate') {
+            markerGroup = buildOneSidedGate3DMesh(isSelected);
+            labelHeightOffset = 5.4;
+          } else if (wpt.category === 'shop') {
+            markerGroup = buildShop3DMesh(isSelected);
+            labelHeightOffset = 6.4;
+          } else {
+            markerGroup = new THREE.Group();
+            const pin = new THREE.Mesh(
+              new THREE.SphereGeometry(0.9, 14, 14),
+              new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.4 })
+            );
+            pin.position.y = 2.0;
+            markerGroup.add(pin);
+            labelHeightOffset = 4.2;
+          }
+
+          markerGroup.position.set(x, groundY, z);
+          markerGroup.visible = state.layers.waypoints;
+          markerGroup.userData = {
+            itemType: 'waypoint',
+            waypoint: wpt,
+            labelAnchor: new THREE.Vector3(x, groundY + labelHeightOffset, z)
+          };
+          dioramaGroup.add(markerGroup);
+          waypointMeshes.push(markerGroup);
+
+          if (overlay) {
+            const el = document.createElement('div');
+            el.id = `label-${wpt.id}`;
+            el.className = `wpt-label px-2.5 py-1 rounded-xl text-[11px] font-semibold shadow-xl border backdrop-blur-md flex items-center gap-1.5 whitespace-nowrap ${
+              isSelected
+                ? 'selected bg-emerald-500 text-slate-950 border-emerald-200'
+                : 'bg-slate-900/90 text-slate-100 border-white/15 hover:border-emerald-400/60'
+            }`;
+            el.innerHTML = `${getWaypointBadgeSVG(wpt.category)}<span>${wpt.name}</span>`;
+            el.onclick = e => {
+              e.stopPropagation();
+              selectWaypoint(wpt);
+            };
+            overlay.appendChild(el);
+          }
+        });
+      }
+
+      // =========================================================================
+      // 8. MAPLIBRE GL SATELLITE 3D TERRAIN VIEW
+      // =========================================================================
+      let maplibreMap = null;
+      let maplibreMarkers = [];
+
+      /**
+       * Renders curved, parallel, dark-haloed road name labels in screen space
+       * over Satellite 2D and Satellite 3D maps so letters follow the exact curvature of each road.
+       */
+      function renderSatellite2DCurvedLabels() {
+        const canvas = document.getElementById('sat2d-road-labels-canvas');
+        if (!canvas) return;
+
+        const isSatMode = state.renderMode === 'satellite2d' || state.renderMode === 'satellite';
+        if (!isSatMode || !state.layers.roadLabels || !maplibreMap || !state.gpxData) {
+          canvas.classList.add('hidden');
+          const ctx = canvas.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+
+        canvas.classList.remove('hidden');
+        const width = canvas.clientWidth || window.innerWidth;
+        const height = canvas.clientHeight || window.innerHeight;
+        if (!width || !height) return;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const targetW = Math.round(width * dpr);
+        const targetH = Math.round(height * dpr);
+        if (canvas.width !== targetW || canvas.height !== targetH) {
+          canvas.width = targetW;
+          canvas.height = targetH;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        const placedBoxes = [];
+
+        const buildScreenPolyline = points => {
+          const projected = [];
+          for (let i = 0; i < points.length; i++) {
+            const pt = points[i];
+            const sp = maplibreMap.project([pt.lon, pt.lat]);
+            if (sp && Number.isFinite(sp.x) && Number.isFinite(sp.y)) {
+              projected.push({ x: sp.x, y: sp.y });
+            }
+          }
+          if (projected.length < 2) return null;
+
+          const cleaned = [projected[0]];
+          for (let i = 1; i < projected.length; i++) {
+            const d = Math.hypot(
+              projected[i].x - cleaned[cleaned.length - 1].x,
+              projected[i].y - cleaned[cleaned.length - 1].y
+            );
+            if (d > 2.0) cleaned.push(projected[i]);
+          }
+          if (cleaned.length < 2) return null;
+
+          const dense = [cleaned[0]];
+          for (let i = 1; i < cleaned.length; i++) {
+            const a = cleaned[i - 1];
+            const b = cleaned[i];
+            const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+            const steps = Math.max(1, Math.ceil(segLen / 4));
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps;
+              dense.push({
+                x: a.x + (b.x - a.x) * t,
+                y: a.y + (b.y - a.y) * t
+              });
+            }
+          }
+
+          // Keep overall left-to-right readability on screen
+          if (dense[dense.length - 1].x < dense[0].x) {
+            dense.reverse();
+          }
+
+          const smoothFrames = dense.map((pt, idx) => {
+            const i0 = Math.max(0, idx - 3);
+            const i1 = Math.min(dense.length - 1, idx + 3);
+            let dx = dense[i1].x - dense[i0].x;
+            let dy = dense[i1].y - dense[i0].y;
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+            return { x: pt.x, y: pt.y, dx, dy };
+          });
+
+          const cum = [0];
+          for (let i = 1; i < smoothFrames.length; i++) {
+            cum.push(
+              cum[i - 1] +
+                Math.hypot(smoothFrames[i].x - smoothFrames[i - 1].x, smoothFrames[i].y - smoothFrames[i - 1].y)
+            );
+          }
+          const totalLen = cum[cum.length - 1];
+          if (totalLen < 22) return null;
+
+          const sampleCenterAt = dist => {
+            const clamped = Math.max(0, Math.min(totalLen, dist));
+            let idx = 1;
+            while (idx < cum.length - 1 && cum[idx] < clamped) idx++;
+            const s0 = cum[idx - 1];
+            const s1 = cum[idx];
+            const t = s1 > s0 ? (clamped - s0) / (s1 - s0) : 0;
+
+            const f0 = smoothFrames[idx - 1];
+            const f1 = smoothFrames[idx];
+            const x = f0.x + (f1.x - f0.x) * t;
+            const y = f0.y + (f1.y - f0.y) * t;
+
+            let dx = f0.dx * (1 - t) + f1.dx * t;
+            let dy = f0.dy * (1 - t) + f1.dy * t;
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+
+            return { x, y, angle: Math.atan2(dy, dx), nx: -dy, ny: dx };
+          };
+
+          const buildOffsetCurve = (centerFrac, spanWidth, clearance, sign) => {
+            const halfSpan = Math.max(spanWidth * 0.65, 24);
+            const startCenter = Math.max(0, Math.min(totalLen, totalLen * centerFrac - halfSpan));
+            const endCenter = Math.max(startCenter + 4, Math.min(totalLen, totalLen * centerFrac + halfSpan));
+
+            const sampleCount = 48;
+            const offsetPts = [];
+            const offsetCum = [0];
+
+            for (let k = 0; k <= sampleCount; k++) {
+              const u = k / sampleCount;
+              const cPt = sampleCenterAt(startCenter + u * (endCenter - startCenter));
+              const ox = cPt.x + cPt.nx * clearance * sign;
+              const oy = cPt.y + cPt.ny * clearance * sign;
+              offsetPts.push({ x: ox, y: oy, cx: cPt.x, cy: cPt.y, angle: cPt.angle });
+              if (k > 0) {
+                const prev = offsetPts[k - 1];
+                offsetCum.push(offsetCum[k - 1] + Math.hypot(ox - prev.x, oy - prev.y));
+              }
+            }
+
+            const offsetLen = offsetCum[offsetCum.length - 1];
+            const sampleOffsetAt = oDist => {
+              const clamped = Math.max(0, Math.min(offsetLen, oDist));
+              let idx = 1;
+              while (idx < offsetCum.length - 1 && offsetCum[idx] < clamped) idx++;
+              const d0 = offsetCum[idx - 1];
+              const d1 = offsetCum[idx];
+              const t = d1 > d0 ? (clamped - d0) / (d1 - d0) : 0;
+              const p0 = offsetPts[idx - 1];
+              const p1 = offsetPts[idx];
+
+              const ax = Math.cos(p0.angle) * (1 - t) + Math.cos(p1.angle) * t;
+              const ay = Math.sin(p0.angle) * (1 - t) + Math.sin(p1.angle) * t;
+              return {
+                x: p0.x + (p1.x - p0.x) * t,
+                y: p0.y + (p1.y - p0.y) * t,
+                cx: p0.cx + (p1.cx - p0.cx) * t,
+                cy: p0.cy + (p1.cy - p0.cy) * t,
+                angle: Math.atan2(ay, ax)
+              };
+            };
+
+            return { offsetLen, sampleOffsetAt };
+          };
+
+          return { totalLen, buildOffsetCurve };
+        };
+
+        state.gpxData.tracks.forEach((track, tIdx) => {
+          if (!state.layers[track.tier] || !track.points || track.points.length < 2) return;
+          const poly = buildScreenPolyline(track.points);
+          if (!poly) return;
+
+          const cfg = TIER_CONFIG[track.tier] || TIER_CONFIG.secondary;
+          const isSelected = state.selectedItem?.type === 'track' && state.selectedItem.data.id === track.id;
+
+          const fontSize = isSelected ? 13 : 11;
+          ctx.font = `${isSelected ? 700 : 600} ${fontSize}px Inter, -apple-system, sans-serif`;
+
+          const chars = Array.from(track.name || '');
+          if (!chars.length) return;
+
+          const measuredWidths = chars.map(ch => ctx.measureText(ch).width);
+          const maxCharWidth = Math.max(...measuredWidths, fontSize * 0.58);
+          const avgCharWidth = measuredWidths.reduce((a, b) => a + b, 0) / chars.length;
+
+          const charStep = Math.max(avgCharWidth * 1.28, maxCharWidth * 1.05, fontSize * 0.76);
+          const spanBetweenFirstLast = charStep * Math.max(0, chars.length - 1);
+          const textPixelWidth = spanBetweenFirstLast + maxCharWidth;
+
+          if (textPixelWidth + 24 > poly.totalLen) return;
+
+          const tubeClearance = (isSelected ? 13.5 : 12) + fontSize * 0.45;
+          const preferredSign = tIdx % 2 === 0 ? 1 : -1;
+          const candidates = [0.5, 0.35, 0.65, 0.25, 0.75, 0.42, 0.58];
+          let chosenPlacement = null;
+
+          for (const frac of candidates) {
+            for (const sign of [preferredSign, -preferredSign]) {
+              const offsetCurve = poly.buildOffsetCurve(frac, textPixelWidth, tubeClearance, sign);
+              const padEnds = maxCharWidth * 0.5 + 4;
+              if (offsetCurve.offsetLen < spanBetweenFirstLast + padEnds * 2) continue;
+
+              const startODist = (offsetCurve.offsetLen - spanBetweenFirstLast) * 0.5;
+              const glyphSamples = [];
+              let valid = true;
+
+              for (let i = 0; i < chars.length; i++) {
+                const pt = offsetCurve.sampleOffsetAt(startODist + i * charStep);
+
+                if (pt.x < 16 || pt.x > width - 16 || pt.y < 16 || pt.y > height - 16) {
+                  valid = false;
+                  break;
+                }
+
+                if (Math.hypot(pt.x - pt.cx, pt.y - pt.cy) < tubeClearance * 0.78) {
+                  valid = false;
+                  break;
+                }
+
+                if (glyphSamples.length > 0) {
+                  const prevGlyph = glyphSamples[glyphSamples.length - 1];
+                  if (Math.hypot(pt.x - prevGlyph.px, pt.y - prevGlyph.py) < charStep * 0.9) {
+                    valid = false;
+                    break;
+                  }
+                }
+
+                const r = charStep * 0.56;
+                for (let b = 0; b < placedBoxes.length; b++) {
+                  const box = placedBoxes[b];
+                  if (Math.hypot(pt.x - box.x, pt.y - box.y) < r + box.r + 4) {
+                    valid = false;
+                    break;
+                  }
+                }
+                if (!valid) break;
+
+                glyphSamples.push({ ch: chars[i], px: pt.x, py: pt.y, angle: pt.angle, r });
+              }
+
+              if (valid) {
+                chosenPlacement = glyphSamples;
+                break;
+              }
+            }
+            if (chosenPlacement) break;
+          }
+
+          if (!chosenPlacement) return;
+
+          chosenPlacement.forEach(g => {
+            ctx.save();
+            ctx.translate(g.px, g.py);
+            ctx.rotate(g.angle);
+
+            ctx.strokeStyle = 'rgba(7, 11, 9, 0.92)';
+            ctx.lineWidth = isSelected ? 4.2 : 3.4;
+            ctx.strokeText(g.ch, 0, 0);
+
+            ctx.fillStyle = isSelected ? SELECTED_ROUTE_HEX : cfg.colorHex;
+            ctx.globalAlpha = isSelected ? 1.0 : 0.98;
+            ctx.fillText(g.ch, 0, 0);
+            ctx.restore();
+
+            placedBoxes.push({ x: g.px, y: g.py, r: g.r });
+          });
+        });
+
+        ctx.restore();
+      }
+
+      function initMapLibre() {
+        if (maplibreMap || !state.gpxData) return;
+        if (typeof window.maplibregl === 'undefined' || !hasWebGLSupport()) {
+          setRenderMode('diorama');
+          renderMobile2DFallbackMap('2D Map View');
+          return;
+        }
+        try {
+          const { centerLat, centerLon } = state.gpxData.bounds;
+          maplibreMap = new maplibregl.Map({
+            container: 'maplibre-container',
+            center: [centerLon, centerLat],
+            zoom: 14.3,
+            pitch: DEFAULT_VIEW.pitch,
+            bearing: DEFAULT_VIEW.bearing,
+            antialias: true,
+            style: {
+              version: 8,
+              sources: {
+                satellite: {
+                  type: 'raster',
+                  tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                  ],
+                  tileSize: 256
+                },
+                terrainDEM: {
+                  type: 'raster-dem',
+                  tiles: [
+                    'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+                  ],
+                  encoding: 'terrarium',
+                  tileSize: 256,
+                  maxzoom: 15
+                }
+              },
+              terrain: {
+                source: 'terrainDEM',
+                exaggeration: 1.65
+              },
+              layers: [
+                {
+                  id: 'satellite-base',
+                  type: 'raster',
+                  source: 'satellite'
+                }
+              ]
+            }
+          });
+
+          maplibreMap.on('load', () => {
+            syncMapLibreData();
+            syncCompassRotation();
+            renderSatellite2DCurvedLabels();
+          });
+          maplibreMap.on('rotate', syncCompassRotation);
+          maplibreMap.on('move', renderSatellite2DCurvedLabels);
+          maplibreMap.on('zoom', renderSatellite2DCurvedLabels);
+          maplibreMap.on('pitch', renderSatellite2DCurvedLabels);
+          maplibreMap.on('error', () => {
+            if (!maplibreMap || !maplibreMap.isStyleLoaded()) {
+              setRenderMode('diorama');
+              renderMobile2DFallbackMap('2D Map View');
+            }
+          });
+        } catch (err) {
+          console.warn('MapLibre fallback triggered:', err);
+          setRenderMode('diorama');
+          renderMobile2DFallbackMap('2D Map View');
+        }
+      }
+
+      function syncMapLibreData() {
+        if (!maplibreMap || !maplibreMap.isStyleLoaded() || !state.gpxData) return;
+
+        ['main', 'secondary'].forEach(tier => {
+          const srcId = `gpx-${tier}`;
+          const lineId = `line-${tier}`;
+          if (maplibreMap.getLayer(lineId)) maplibreMap.removeLayer(lineId);
+          if (maplibreMap.getSource(srcId)) maplibreMap.removeSource(srcId);
+
+          const features = state.gpxData.tracks
+            .filter(t => t.tier === tier)
+            .map(t => ({
+              type: 'Feature',
+              properties: { id: t.id, name: t.name, tier: t.tier },
+              geometry: {
+                type: 'LineString',
+                coordinates: t.points.map(p => [p.lon, p.lat])
+              }
+            }));
+
+          maplibreMap.addSource(srcId, {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features }
+          });
+
+          const cfg = TIER_CONFIG[tier];
+          maplibreMap.addLayer({
+            id: lineId,
+            type: 'line',
+            source: srcId,
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+              visibility: state.layers[tier] ? 'visible' : 'none'
+            },
+            paint: {
+              'line-color': cfg.colorHex,
+              'line-width': tier === 'main' ? 4.2 : 3.0
+            }
+          });
+
+          maplibreMap.on('click', lineId, e => {
+            if (e.features && e.features.length > 0) {
+              const trkId = e.features[0].properties.id;
+              const trk = state.gpxData.tracks.find(t => t.id === trkId);
+              if (trk) selectTrack(trk);
+            }
+          });
+        });
+
+        maplibreMarkers.forEach(m => m.remove());
+        maplibreMarkers = [];
+
+        if (state.layers.waypoints) {
+          state.gpxData.waypoints.forEach(wpt => {
+            const el = document.createElement('div');
+            el.className =
+              'px-2 py-1 rounded-lg text-[11px] font-semibold shadow-lg border bg-slate-900/90 text-slate-100 border-white/20 flex items-center gap-1.5 cursor-pointer hover:border-emerald-400';
+            el.innerHTML = `${getWaypointBadgeSVG(wpt.category)}<span>${wpt.name}</span>`;
+            el.onclick = () => selectWaypoint(wpt);
+
+            const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+              .setLngLat([wpt.lon, wpt.lat])
+              .addTo(maplibreMap);
+            maplibreMarkers.push(marker);
+          });
+        }
+
+        renderSatellite2DCurvedLabels();
+      }
+
+      // =========================================================================
+      // 9. INTERACTIVE SELECTION, ELEVATION PROFILE & UI CONTROLS
+      // =========================================================================
+      function populateDropdown() {
+        const select = document.getElementById('feature-select');
+        select.innerHTML = '<option value="">-- Overview (All Trails &amp; Stands) --</option>';
+
+        const trkGroup = document.createElement('optgroup');
+        trkGroup.label = 'Roads & Trails';
+        state.gpxData.tracks.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = `track:${t.id}`;
+          opt.textContent = `${t.name} (${(t.totalDist * METERS_TO_MILES).toFixed(2)} mi)`;
+          trkGroup.appendChild(opt);
+        });
+        select.appendChild(trkGroup);
+
+        const wptGroup = document.createElement('optgroup');
+        wptGroup.label = 'Stands, Gates, Bear Den & Shop';
+        state.gpxData.waypoints.forEach(w => {
+          const opt = document.createElement('option');
+          opt.value = `wpt:${w.id}`;
+          opt.textContent = w.name;
+          wptGroup.appendChild(opt);
+        });
+        select.appendChild(wptGroup);
+      }
+
+      function handleDropdownSelect(val) {
+        if (!val) {
+          clearSelection();
+          return;
+        }
+        const [type, id] = val.split(':');
+        if (type === 'track') {
+          const trk = state.gpxData.tracks.find(t => t.id === id);
+          if (trk) selectTrack(trk);
+        } else if (type === 'wpt') {
+          const wpt = state.gpxData.waypoints.find(w => w.id === id);
+          if (wpt) selectWaypoint(wpt);
+        }
+      }
+
+      function selectTrack(track) {
+        state.selectedItem = { type: 'track', data: track };
+        document.getElementById('feature-select').value = `track:${track.id}`;
+        build3DRoads();
+        build3DWaypoints();
+        updateSurfaceTexture();
+        renderSatellite2DCurvedLabels();
+
+        const cfg = TIER_CONFIG[track.tier];
+        const drawer = document.getElementById('inspector-drawer');
+        drawer.classList.remove('hidden');
+        document.getElementById('elevation-chart-wrapper').classList.remove('hidden');
+
+        document.getElementById('inspector-badge').style.backgroundColor = cfg.colorHex;
+        document.getElementById('inspector-title').textContent = track.name;
+        document.getElementById('inspector-tier-pill').textContent = cfg.label;
+
+        const miles = (track.totalDist * METERS_TO_MILES).toFixed(2);
+        const minFt = Math.round(track.minEle * METERS_TO_FEET);
+        const maxFt = Math.round(track.maxEle * METERS_TO_FEET);
+        const gainFt = Math.round(track.gain * METERS_TO_FEET);
+        document.getElementById('inspector-meta').textContent =
+          `Distance: ${miles} mi • Elev: ${minFt} ft – ${maxFt} ft • Gain: +${gainFt} ft`;
+
+        drawElevationChart(track);
+
+        const midPt = track.points[Math.floor(track.points.length / 2)];
+        if (state.renderMode === 'diorama' && orbit.target) {
+          const { x, z, u, v } = latLonToWorldXZ(midPt.lat, midPt.lon);
+          const y = eleMetersToWorldY(sampleElevationAtUV(u, v));
+          orbit.target.set(x * 0.55, y * 0.6, z * 0.55);
+          updateCameraFromOrbit();
+        } else if (maplibreMap) {
+          maplibreMap.flyTo({ center: [midPt.lon, midPt.lat], zoom: 15.2, duration: 900 });
+        }
+      }
+
+      function selectWaypoint(wpt) {
+        state.selectedItem = { type: 'waypoint', data: wpt };
+        document.getElementById('feature-select').value = `wpt:${wpt.id}`;
+        build3DRoads();
+        build3DWaypoints();
+
+        const drawer = document.getElementById('inspector-drawer');
+        drawer.classList.remove('hidden');
+        document.getElementById('elevation-chart-wrapper').classList.add('hidden');
+        if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+
+        const { x, z, u, v } = latLonToWorldXZ(wpt.lat, wpt.lon);
+        const terrainEle = wpt.ele !== null ? wpt.ele : sampleElevationAtUV(u, v);
+        const eleFt = Math.round(terrainEle * METERS_TO_FEET);
+
+        const badgeColor =
+          wpt.category === 'bear'
+            ? '#d97706'
+            : wpt.category === 'stand'
+            ? '#10b981'
+            : wpt.category === 'gate'
+            ? '#ef4444'
+            : wpt.category === 'shop'
+            ? '#f8fafc'
+            : '#38bdf8';
+        const pillText =
+          wpt.category === 'bear'
+            ? 'Bear Den'
+            : wpt.category === 'stand'
+            ? 'Hunting Stand'
+            : wpt.category === 'gate'
+            ? 'Property Gate'
+            : wpt.category === 'shop'
+            ? 'Base / Shop'
+            : 'Landmark';
+
+        document.getElementById('inspector-badge').style.backgroundColor = badgeColor;
+        document.getElementById('inspector-title').textContent = wpt.name;
+        document.getElementById('inspector-tier-pill').textContent = pillText;
+        document.getElementById('inspector-meta').textContent =
+          `Elevation: ${eleFt} ft • GPS: ${wpt.lat.toFixed(5)}° N, ${Math.abs(wpt.lon).toFixed(5)}° W`;
+
+        if (state.renderMode === 'diorama' && orbit.target) {
+          const y = eleMetersToWorldY(terrainEle);
+          orbit.target.set(x * 0.65, y * 0.7, z * 0.65);
+          updateCameraFromOrbit();
+        } else if (maplibreMap) {
+          maplibreMap.flyTo({ center: [wpt.lon, wpt.lat], zoom: 15.8, duration: 900 });
+        }
+      }
+
+      function clearSelection() {
+        state.selectedItem = null;
+        document.getElementById('feature-select').value = '';
+        document.getElementById('inspector-drawer').classList.add('hidden');
+        if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+        build3DRoads();
+        build3DWaypoints();
+        updateSurfaceTexture();
+        renderSatellite2DCurvedLabels();
+      }
+
+      function setRenderMode(mode) {
+        state.renderMode = mode;
+        const btnDiorama = document.getElementById('btn-mode-diorama');
+        const btnSat2D = document.getElementById('btn-mode-satellite-2d');
+        const btnSat = document.getElementById('btn-mode-satellite');
+        const threeCont = document.getElementById('three-container');
+        const labelsOv = document.getElementById('labels-overlay');
+        const vignette = document.getElementById('vignette-overlay');
+        const mapCont = document.getElementById('maplibre-container');
+        const dioramaCtrl = document.getElementById('diorama-controls');
+
+        const inactiveClass = 'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-300 hover:text-white';
+        const activeClass = 'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all bg-emerald-500 text-slate-950 shadow-md';
+
+        btnDiorama.className = mode === 'diorama' ? activeClass : inactiveClass;
+        if (btnSat2D) btnSat2D.className = mode === 'satellite2d' ? activeClass : inactiveClass;
+        btnSat.className = mode === 'satellite' ? activeClass : inactiveClass;
+
+        if (mode === 'diorama') {
+          threeCont.classList.remove('hidden');
+          labelsOv.classList.remove('hidden');
+          vignette.classList.remove('hidden');
+          mapCont.classList.add('hidden');
+          dioramaCtrl.classList.remove('hidden');
+          renderSatellite2DCurvedLabels();
+          updateWaypointScreenLabels();
+        } else {
+          threeCont.classList.add('hidden');
+          labelsOv.classList.add('hidden');
+          vignette.classList.add('hidden');
+          mapCont.classList.remove('hidden');
+          dioramaCtrl.classList.add('hidden');
+          if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+          initMapLibre();
+          if (maplibreMap) {
+            const apply2DOr3D = () => {
+              if (mode === 'satellite2d') {
+                maplibreMap.setTerrain(null);
+                maplibreMap.easeTo({ pitch: 0, duration: 400 });
+              } else {
+                maplibreMap.setTerrain({ source: 'terrainDEM', exaggeration: 1.65 });
+                maplibreMap.easeTo({ pitch: DEFAULT_VIEW.pitch, duration: 400 });
+              }
+              renderSatellite2DCurvedLabels();
+            };
+            if (maplibreMap.isStyleLoaded()) {
+              apply2DOr3D();
+            } else {
+              maplibreMap.once('load', apply2DOr3D);
+            }
+            setTimeout(() => {
+              maplibreMap.resize();
+              syncMapLibreData();
+              syncCompassRotation();
+              renderSatellite2DCurvedLabels();
+            }, 60);
+          }
+        }
+        renderSatellite2DCurvedLabels();
+        syncCompassRotation();
+      }
+
+      function toggleAutoRotate() {
+        autoRotate = !autoRotate;
+        const btn = document.getElementById('btn-auto-rotate');
+        if (!btn) return;
+        btn.textContent = autoRotate ? 'Spin: On' : 'Spin: Off';
+        btn.className = autoRotate
+          ? 'py-1.5 px-3 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-xs font-medium text-emerald-200 transition'
+          : 'py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-slate-300 transition';
+      }
+
+      function updateExaggeration(val) {
+        state.exaggeration = parseFloat(val) || 1.8;
+        document.getElementById('exag-value').textContent = `${state.exaggeration.toFixed(1)}x`;
+        rebuildDioramaMesh();
+      }
+
+      function setSurfaceStyle(style) {
+        state.surfaceStyle = style;
+        const btnHybrid = document.getElementById('btn-tex-hybrid');
+        const btnTopo = document.getElementById('btn-tex-topo');
+        if (style === 'hybrid') {
+          btnHybrid.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition';
+          btnTopo.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition';
+        } else {
+          btnTopo.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-emerald-400/50 bg-emerald-500/20 text-emerald-200 transition';
+          btnHybrid.className =
+            'py-1.5 px-2.5 rounded-xl font-medium border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 transition';
+        }
+        updateSurfaceTexture();
+      }
+
+      function drawElevationChart(track) {
+        const canvas = document.getElementById('elevation-canvas');
+        const wrapper = document.getElementById('elevation-chart-wrapper');
+        if (!canvas || !wrapper || !track || !track.points.length) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const width = wrapper.clientWidth || 600;
+        const height = wrapper.clientHeight || 100;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, width, height);
+
+        const cfg = TIER_CONFIG[track.tier] || TIER_CONFIG.secondary;
+        const pts = track.points;
+        const maxDist = Math.max(track.totalDist, 1);
+        const padX = 12;
+        const padTop = 14;
+        const padBot = 16;
+        const plotW = Math.max(10, width - padX * 2);
+        const plotH = Math.max(10, height - padTop - padBot);
+
+        let minE = Infinity, maxE = -Infinity;
+        pts.forEach(p => {
+          if (p.ele < minE) minE = p.ele;
+          if (p.ele > maxE) maxE = p.ele;
+        });
+        const spanE = Math.max(maxE - minE, 2);
+
+        const coords = pts.map(p => ({
+          x: padX + (p.dist / maxDist) * plotW,
+          y: padTop + (1 - (p.ele - minE) / spanE) * plotH
+        }));
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+        ctx.lineWidth = 1;
+        for (let g = 0; g <= 2; g++) {
+          const gy = padTop + (g / 2) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padX, gy);
+          ctx.lineTo(padX + plotW, gy);
+          ctx.stroke();
+        }
+
+        const grad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+        grad.addColorStop(0, cfg.rgba);
+        grad.addColorStop(1, 'rgba(15, 23, 42, 0.02)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(coords[0].x, padTop + plotH);
+        coords.forEach(c => ctx.lineTo(c.x, c.y));
+        ctx.lineTo(coords[coords.length - 1].x, padTop + plotH);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = cfg.colorHex;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        coords.forEach((c, i) => {
+          if (i === 0) ctx.moveTo(c.x, c.y);
+          else ctx.lineTo(c.x, c.y);
+        });
+        ctx.stroke();
+      }
+
+      function setupProfileScrubber() {
+        const wrapper = document.getElementById('elevation-chart-wrapper');
+        const readout = document.getElementById('elevation-readout');
+        if (!wrapper || !readout) return;
+
+        const updateScrub = clientX => {
+          if (!state.selectedItem || state.selectedItem.type !== 'track') return;
+          const track = state.selectedItem.data;
+          const pts = track.points;
+          if (!pts || pts.length < 2) return;
+
+          const rect = wrapper.getBoundingClientRect();
+          const padX = 12;
+          const plotW = Math.max(10, rect.width - padX * 2);
+          const ratio = Math.max(0, Math.min(1, (clientX - rect.left - padX) / plotW));
+
+          const targetDist = ratio * track.totalDist;
+          let bestPt = pts[0];
+          let bestDiff = Math.abs(pts[0].dist - targetDist);
+          for (let i = 1; i < pts.length; i++) {
+            const diff = Math.abs(pts[i].dist - targetDist);
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              bestPt = pts[i];
+            }
+          }
+
+          const mi = (bestPt.dist * METERS_TO_MILES).toFixed(2);
+          const ft = Math.round(bestPt.ele * METERS_TO_FEET);
+          readout.textContent = `${mi} mi • ${ft} ft`;
+          readout.classList.remove('hidden');
+
+          if (scrubMarkerMesh && state.renderMode === 'diorama') {
+            const { x, z, u, v } = latLonToWorldXZ(bestPt.lat, bestPt.lon);
+            const y = eleMetersToWorldY(sampleElevationAtUV(u, v)) + 1.2;
+            scrubMarkerMesh.position.set(x, y, z);
+            scrubMarkerMesh.visible = true;
+          }
+        };
+
+        wrapper.addEventListener('pointermove', e => updateScrub(e.clientX));
+        wrapper.addEventListener(
+          'touchstart',
+          e => {
+            if (e.touches.length > 0) {
+              e.preventDefault();
+              updateScrub(e.touches[0].clientX);
+            }
+          },
+          { passive: false }
+        );
+        wrapper.addEventListener(
+          'touchmove',
+          e => {
+            if (e.touches.length > 0) {
+              e.preventDefault();
+              updateScrub(e.touches[0].clientX);
+            }
+          },
+          { passive: false }
+        );
+        wrapper.addEventListener('touchend', () => {
+          readout.classList.add('hidden');
+          if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+        });
+        wrapper.addEventListener('pointerleave', () => {
+          readout.classList.add('hidden');
+          if (scrubMarkerMesh) scrubMarkerMesh.visible = false;
+        });
+      }
+
+      function updateWaypointScreenLabels() {
+        if (!camera || !renderer || !state.gpxData || state.renderMode !== 'diorama') return;
+        const width = renderer.domElement.clientWidth;
+        const height = renderer.domElement.clientHeight;
+        if (!width || !height) return;
+
+        waypointMeshes.forEach(group => {
+          const wpt = group.userData?.waypoint;
+          const anchor = group.userData?.labelAnchor;
+          if (!wpt || !anchor) return;
+          const el = document.getElementById(`label-${wpt.id}`);
+          if (!el) return;
+
+          if (!state.layers.waypoints) {
+            el.style.display = 'none';
+            return;
+          }
+
+          const projected = anchor.clone().project(camera);
+          const sx = (projected.x * 0.5 + 0.5) * width;
+          const sy = (-projected.y * 0.5 + 0.5) * height;
+
+          if (projected.z > 1 || sx < -60 || sx > width + 60 || sy < -40 || sy > height + 40) {
+            el.style.display = 'none';
+          } else {
+            el.style.display = 'flex';
+            el.style.left = `${sx}px`;
+            el.style.top = `${sy}px`;
+          }
+        });
+      }
+
+      function toggleLayer(layerKey, visible) {
+        state.layers[layerKey] = visible;
+        if (layerKey === 'waypoints') {
+          waypointMeshes.forEach(m => (m.visible = visible));
+          updateWaypointScreenLabels();
+        } else if (layerKey === 'roadLabels') {
+          updateRouteLabelOverlay();
+        } else {
+          roadMeshes.forEach(m => {
+            if (m.userData.track.tier === layerKey) m.visible = visible;
+          });
+          updateSurfaceTexture();
+        }
+        if (maplibreMap) syncMapLibreData();
+        renderSatellite2DCurvedLabels();
+      }
+
+      function toggleSidebar() {
+        const panel = document.getElementById('sidebar-panel');
+        const pill = document.getElementById('sidebar-minimized-pill');
+        if (!panel) return;
+        const isHidden = panel.classList.contains('hidden');
+        if (isHidden) {
+          panel.classList.remove('hidden');
+          if (pill) pill.classList.add('hidden');
+          if (pill) pill.classList.remove('flex');
+        } else {
+          panel.classList.add('hidden');
+          if (pill) {
+            pill.classList.remove('hidden');
+            pill.classList.add('flex');
+          }
+        }
+      }
+
+      function toggleMinimizeSidebar(forceState) {
+        const panel = document.getElementById('sidebar-panel');
+        const pill = document.getElementById('sidebar-minimized-pill');
+        if (!panel || !pill) return;
+
+        const shouldMinimize =
+          typeof forceState === 'boolean' ? forceState : !panel.classList.contains('hidden');
+
+        if (shouldMinimize) {
+          panel.classList.add('hidden');
+          pill.classList.remove('hidden');
+          pill.classList.add('flex');
+        } else {
+          panel.classList.remove('hidden');
+          pill.classList.add('hidden');
+          pill.classList.remove('flex');
+        }
+      }
+
+      function resetCamera() {
+        orbit.theta = DEFAULT_VIEW.theta;
+        orbit.phi = DEFAULT_VIEW.phi;
+        orbit.radius = DEFAULT_VIEW.radius;
+        if (orbit.target) orbit.target.set(0, 12, 0);
+        if ((state.renderMode === 'satellite' || state.renderMode === 'satellite2d') && maplibreMap && state.gpxData) {
+          maplibreMap.easeTo({
+            center: [state.gpxData.bounds.centerLon, state.gpxData.bounds.centerLat],
+            zoom: 14.3,
+            pitch: state.renderMode === 'satellite2d' ? 0 : DEFAULT_VIEW.pitch,
+            bearing: DEFAULT_VIEW.bearing,
+            duration: 600
+          });
+        }
+        updateCameraFromOrbit();
+        updateRouteLabelOverlay();
+      }
+
+      function setStatusBadge(text, classes) {
+        const badge = document.getElementById('terrain-status-badge');
+        if (!badge) return;
+        badge.textContent = text;
+        badge.className = `text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${classes}`;
+      }
+
+      // =========================================================================
+      // 10. ANIMATION LOOP & BOOTSTRAP
+      // =========================================================================
+      function animateLoop() {
+        requestAnimationFrame(animateLoop);
+        if (state.renderMode === 'diorama' && renderer && scene && camera) {
+          if (!orbit.isDragging && (Math.abs(orbit.velTheta) > 0.00005 || Math.abs(orbit.velPhi) > 0.00005)) {
+            orbit.theta += orbit.velTheta;
+            orbit.phi += orbit.velPhi;
+            orbit.velTheta *= 0.86;
+            orbit.velPhi *= 0.86;
+            updateCameraFromOrbit();
+          } else if (autoRotate && !orbit.isDragging) {
+            orbit.theta += 0.0025;
+            updateCameraFromOrbit();
+          }
+          renderer.render(scene, camera);
+          updateWaypointScreenLabels();
+        }
+      }
+
+      async function bootstrapApp() {
+        try {
+          const rawGpx = document.getElementById('default-gpx-data').textContent;
+          const parsed = parseGPXString(rawGpx);
+          state.gpxData = parsed;
+
+          const totalMiles = parsed.tracks
+            .reduce((sum, t) => sum + (t.totalDist || 0) * METERS_TO_MILES, 0)
+            .toFixed(2);
+          const standCount = parsed.waypoints.filter(w => w.category === 'stand').length;
+          document.getElementById('map-title').textContent = parsed.title;
+          document.getElementById(
+            'map-subtitle'
+          ).textContent = `${parsed.tracks.length} Tracks • ${standCount} Stands • ${totalMiles} mi`;
+
+          populateDropdown();
+          setupProfileScrubber();
+
+          await ensureThreeLoaded();
+          initThreeEngine();
+          await buildTerrainFromGPX(parsed);
+          syncCompassRotation();
+          animateLoop();
+        } catch (err) {
+          console.error('3D Map bootstrap failed:', err);
+          if (state.gpxData) {
+            renderMobile2DFallbackMap('2D Fallback View');
+          } else {
+            setStatusBadge('Render Error', 'bg-rose-500/20 text-rose-300 border-rose-400/30');
+          }
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrapApp);
+      } else {
+        bootstrapApp();
+      }
+    </script>
+  </body>
+</html>
